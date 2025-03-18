@@ -1,5 +1,6 @@
 # Additional
 venv_address.sh
+*.swp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
