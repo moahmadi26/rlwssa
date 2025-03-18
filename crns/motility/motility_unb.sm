@@ -1,0 +1,44 @@
+ctmc
+
+
+const double k1  = 0.1;
+const double k2  = 0.0002;
+const double k3  = 1;
+const double k4  = 0.0002;
+const double k5  = 1;
+const double k6  = 0.0002;
+const double k7  = 0.01;
+const double k8  = 0.1;
+const double k9  = 0.02;
+const double k10 = 0.1;
+const double k11 = 0.01;
+const double k12 = 0.1;
+
+module motility
+
+codY : int init 1;
+flache : int init 1;
+SigD_hag : int init 1;
+hag : int init 1;
+CodY_flache : int init 1;
+CodY_hag : int init 1;
+CodY : int init 10;
+SigD : int init 10;
+Hag : int init 10;
+
+[R1]  codY>0             -> (k1*codY) : (CodY'=CodY+1);
+[R2]  CodY>0             -> (k2*CodY) : (CodY'=CodY-1);
+[R3]  flache>0           -> (k3*flache) : (SigD'=SigD+1);
+[R4]  SigD>0             -> (k4*SigD) : (SigD'=SigD-1);
+[R5]  SigD_hag>0         -> (k5*SigD_hag) : (SigD_hag'=SigD_hag-1)&(SigD'=SigD+1)&(hag'=hag+1)&(Hag'=Hag+1);
+[R6]  Hag>0              -> (k6*Hag) : (Hag'=Hag-1);
+[R7]  SigD>0 & hag>0     -> (k7*SigD*hag) : (SigD'=SigD-1)&(hag'=hag-1)&(SigD_hag'=SigD_hag+1);
+[R8]  SigD_hag>0         -> (k8*SigD_hag) : (SigD_hag'=SigD_hag-1)&(SigD'=SigD+1)&(hag'=hag+1);
+[R9]  CodY>0 & flache>0  -> (k9*CodY*flache) : (CodY'=CodY-1)&(flache'=flache-1)&(CodY_flache'=CodY_flache+1);
+[R10] CodY_flache>0      -> (k10*CodY_flache) : (CodY_flache'=CodY_flache-1)& (CodY'=CodY+1) & (flache'=flache+1);
+[R11] CodY>0 & hag>0     -> (k11*CodY*hag) : (CodY'=CodY-1)&(hag'=hag-1)&(CodY_hag'=CodY_hag+1);
+[R12] CodY_hag>0         -> (k12*CodY_hag) : (CodY_hag'=CodY_hag-1)& (CodY'=CodY+1) & (hag'=hag+1);
+
+
+
+endmodule

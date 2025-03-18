@@ -1,0 +1,9 @@
+{
+	"model_path" : "./models/motility_regulation/motility_unb.sm",
+	"model_name" : "motility_regulation",
+	"starting_bound" : 10,
+	"csl_property" : "P=? [true U<=10 (CodY=20)]",
+	"target_variable" : "CodY",
+	"target_value" : "20",
+	"max_time" : "10"
+}
