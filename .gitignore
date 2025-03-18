@@ -1,5 +1,5 @@
 # Additional
-./venv_address.sh
+venv_address.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
