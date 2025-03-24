@@ -1,5 +1,5 @@
 {
-	"model_path" : "./models/yeast_polarization/yeast_unb.sm",
+	"model_path" : "../crns/yeast/yeast_unb.sm",
 	"model_name" : "yeast_polarization",
 	"starting_bound" : 100,
 	"csl_property" : "P=? [true U<=20 (Gbg=50)]",
