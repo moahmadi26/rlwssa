@@ -20,20 +20,20 @@ def main(json_path):
     target_index = model.species_to_index_dict[target_var]
 
     # Hyperparameters
-    N = 100_000         # total episodes
+    N = 1_000_000         # total episodes
     batch_size = 1000  # number of runs or episodes after which we do some update
     alpha = 0.1
     gamma = 0.95
-    hyper_A = 10_000
     tau = 1.0
+    decay_rate = 0.3
 
     # Create environment
     env = Environment(
         model=model,
         target_index=target_index,
         target_value=target_value,
-        t_max=t_max
-        #hyper_A=hyper_A
+        t_max=t_max,
+        decay_rate = decay_rate
     )
 
     # Create agent
@@ -109,20 +109,34 @@ def main(json_path):
     print(f"Probability estimate: {p_hat}, var={var}, error={error}")
     print(f"Total time: {end_time - start_time:.2f} sec")
 
+    ### temporary
     print("=" * 50)
+    print("=" * 50)
+    ls = list(env.state_count.values())
+    import statistics
+    mean = statistics.mean(ls)
+    median = statistics.median(ls)
+    print(f"average number of times each state is visited = {mean}")
+    print(f"median of the number of times each state is visited = {median}")
+    print("=" * 50)
+    # print("number of times each state is visited:")
+    # for key, value in env.state_count.items():
+    #     print(f"{key} : {value}")
+    # print("=" * 50)
     from collections import defaultdict
     q_table = defaultdict(float)
     for key,value in agent.Q_table.items():
         state = key[0]
         reaction = key[1]
         if state not in q_table:
-            q_table[key[0]] = [None] * 6
+            q_table[key[0]] = [None] * len(model.get_reactions_vector())
         q_table[key[0]][key[1]] = value
     
-    for key, value in q_table.items():
-        print (f"{key} : {value}")
-    print ("=" * 50)
+    # for key, value in q_table.items():
+    #     print (f"{key} : {value}")
+    # print ("=" * 50)
     print(f"number of observed states = {len(q_table.keys())}")
+    ###
 
 if __name__ == "__main__":
     config_path = sys.argv[1]

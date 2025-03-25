@@ -1,6 +1,7 @@
 import random
 import math
 from utils import get_reaction_rate, is_target
+from reward import *
 
 class Environment:
     def __init__(
@@ -8,17 +9,22 @@ class Environment:
         model,
         target_index,
         target_value,
-        t_max
-        #hyper_A
-        #hyper_B
+        t_max,
+        decay_rate
     ):
         
         self.model = model
         self.target_index = target_index
         self.target_value = target_value
         self.t_max = t_max
+        self.decay_rate = decay_rate
         #self.hyper_A = hyper_A
         #self.hyper_B = hyper_B
+
+        # temporary
+        from collections import defaultdict
+        self.state_count = defaultdict(int) 
+        #
 
         # Internal state variables
         self.reset()
@@ -26,6 +32,12 @@ class Environment:
     def reset(self):
         """Reset the environment to start a new episode (trajectory)."""
         self.current_state = self.model.get_initial_state()
+        #
+        if self.current_state in self.state_count:
+            self.state_count[self.current_state] = self.state_count[self.current_state] + 1
+        else:
+            self.state_count[self.current_state] = 1
+        #
         self.current_time = 0.0
         self.done = False
         self.target = False
@@ -41,35 +53,6 @@ class Environment:
              for r_idx in range(len(reactions))]
         a_0 = sum(a)
         return a, a_0
-    
-    # def get_reward(self, current_state, previous_state, weight):
-    #     initial_value = self.model.get_initial_state()[self.target_index]
-    #     current_value = current_state[self.target_index]
-    #     previous_value = previous_state[self.target_index]
-    #     sign = self.target_value - initial_value
-    #     if not is_target(current_state, self.target_index, self.target_value):
-    #         if sign < 0:
-    #             return current_value - previous_value
-    #         else:
-    #             return previous_value - current_value
-    #     else:
-    #         if weight > 1:
-    #             divergence = weight
-    #         else: 
-    #             divergence = 1.0/weight
-    #         return self.hyper_A * (math.exp(0 - divergence))
-        
-    def get_reward_distance(self, done):
-        if not done:
-            return 0
-        
-        initial_value = self.model.get_initial_state()[self.target_index]
-        current_value = self.current_state[self.target_index]
-        sign = self.target_value - initial_value
-        if sign < 0:
-            return 1.0 / math.exp(current_value - self.target_value)
-        else:
-            return 1.0 / math.exp(self.target_value - current_value)
 
     def step(self, action, weight):
         """
@@ -110,6 +93,13 @@ class Environment:
         self.previous_state = self.current_state
         self.current_state = next_state
         self.current_time = new_time
+
+        #
+        if self.current_state in self.state_count:
+            self.state_count[self.current_state] = self.state_count[self.current_state] + 1
+        else:
+            self.state_count[self.current_state] = 1
+        #
         
         reached_target = (is_target(self.current_state, self.target_index, self.target_value) 
                           and self.current_time <= self.t_max)
@@ -121,7 +111,15 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , self.get_reward_distance(self.done)
+                    , get_cost_distance_exp_target_state (
+                        self.model
+                        , self.current_state
+                        , self.target_index
+                        , self.target_value
+                        , self.done
+                        , self.decay_rate
+                        
+                    )
                     , self.get_propensities()[0]
                     )
         elif self.current_time > self.t_max:
@@ -132,7 +130,15 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , self.get_reward_distance(self.done)
+                    , get_cost_distance_exp_target_state (
+                        self.model
+                        , self.current_state
+                        , self.target_index
+                        , self.target_value
+                        , self.done
+                        , self.decay_rate 
+                        
+                    )
                     , self.get_propensities()[0]
                     )
         else:
@@ -143,7 +149,15 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , self.get_reward_distance(self.done)
+                    , get_cost_distance_exp_target_state (
+                        self.model
+                        , self.current_state
+                        , self.target_index
+                        , self.target_value
+                        , self.done
+                        , self.decay_rate
+                        
+                    )
                     , self.get_propensities()[0]
                     )
 

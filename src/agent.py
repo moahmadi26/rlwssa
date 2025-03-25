@@ -27,7 +27,7 @@ class MCAgent:
             else:
                 if len(self.Q_table) < 50_000_000:
                     self.Q_table[(state, a)] = 0.0
-                q_values.append([a, 0.0])
+                    q_values.append([a, 0.0])
     
         # Boltzmann with temperature 'temp'
         temp = self.tau 
