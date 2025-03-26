@@ -53,6 +53,9 @@ def main(json_path):
 
     total_episodes = N
     episode = 0
+    
+    count_observed_reactions = 0
+    average_policy = [0.0 for i in range(len(model.get_reactions_vector()))]
 
     start_time = time.time()
 
@@ -60,18 +63,26 @@ def main(json_path):
         # Start a new episode
         state, propensities = env.reset()
         weight = 1.0
+        
+        
 
         # Keep track if we reached the target in this episode
         done = False
+        temperature = 1.5
 
         while not done:
             # Agent picks an action (reaction)
-            action, w = agent.select_action(state, propensities)
+            action, w, average_policy = agent.select_action(state, propensities, average_policy, temperature)
             weight = weight * w
 
             # Step environment
             next_state, t, done, target, reward, propensities = env.step(action, weight)
             total_reward = total_reward + reward
+            count_observed_reactions += 1
+            rem_time = t_max - t
+            if rem_time < 0:
+                rem_time = 0
+            temperature = 0.5 + (rem_time / t_max)
             # Store for agent
             agent.store_transition(state, action, reward)
 
@@ -108,6 +119,7 @@ def main(json_path):
     print(f"Done! Ran {total_episodes} episodes.")
     print(f"Probability estimate: {p_hat}, var={var}, error={error}")
     print(f"Total time: {end_time - start_time:.2f} sec")
+    print(f"average policy: {[average_policy[i]/count_observed_reactions for i in range(len(average_policy))]}")
 
     ### temporary
     print("=" * 50)

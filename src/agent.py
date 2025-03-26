@@ -19,18 +19,18 @@ class MCAgent:
         self.current_episode = []  # will hold transitions for 1 episode
         
 
-    def select_action(self, state, propensities):
+    def select_action(self, state, propensities, average_policy, temperature):
         q_values = []
         for a in range(self.actions_size):
             if (state, a) in self.Q_table.keys():
                 q_values.append([a, self.Q_table[(state, a)]])
             else:
-                if len(self.Q_table) < 50_000_000:
+                if len(self.Q_table) < 100_000_000:
                     self.Q_table[(state, a)] = 0.0
                     q_values.append([a, 0.0])
     
         # Boltzmann with temperature 'temp'
-        temp = self.tau 
+        temp = temperature 
         exp_q = [math.exp(qv[1] / temp) for qv in q_values]
         exp_q_p = [eqv * propensities[i] for i, eqv in enumerate(exp_q)]
         sum_exp_q_p = sum(exp_q_p)
@@ -46,7 +46,10 @@ class MCAgent:
             j = j+1
         j = j-1
         
-        return q_values[j][0], ((propensities[j] / exp_q_p[j]) * (sum_exp_q_p / sum(propensities)))
+        return (q_values[j][0]
+                , ((propensities[j] / exp_q_p[j]) * (sum_exp_q_p / sum(propensities)))
+                , [average_policy[i] + (exp_q[i]/sum(exp_q)) for i in range(len(average_policy))]
+                )
         
 
     def store_transition(self, state, action, reward):
@@ -88,4 +91,8 @@ class MCAgent:
                 old_q = self.Q_table[(state, action)]
                 # target = G, so:
                 new_q = old_q + self.alpha * (G - old_q)
+                if new_q < -150:
+                    new_q = -150
+                elif new_q > 150:
+                    new_q = 150
                 self.Q_table[(state, action)] = new_q

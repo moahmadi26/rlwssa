@@ -18,8 +18,6 @@ class Environment:
         self.target_value = target_value
         self.t_max = t_max
         self.decay_rate = decay_rate
-        #self.hyper_A = hyper_A
-        #self.hyper_B = hyper_B
 
         # temporary
         from collections import defaultdict
@@ -111,14 +109,12 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , get_cost_distance_exp_target_state (
+                    , get_cost_distance_immediate (
                         self.model
                         , self.current_state
+                        , self.previous_state
                         , self.target_index
-                        , self.target_value
-                        , self.done
-                        , self.decay_rate
-                        
+                        , self.target_value        
                     )
                     , self.get_propensities()[0]
                     )
@@ -130,14 +126,12 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , get_cost_distance_exp_target_state (
+                    , get_cost_distance_immediate (
                         self.model
                         , self.current_state
+                        , self.previous_state
                         , self.target_index
-                        , self.target_value
-                        , self.done
-                        , self.decay_rate 
-                        
+                        , self.target_value 
                     )
                     , self.get_propensities()[0]
                     )
@@ -149,14 +143,12 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    , get_cost_distance_exp_target_state (
+                    , get_cost_distance_immediate (
                         self.model
                         , self.current_state
+                        , self.previous_state
                         , self.target_index
                         , self.target_value
-                        , self.done
-                        , self.decay_rate
-                        
                     )
                     , self.get_propensities()[0]
                     )

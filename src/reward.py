@@ -50,3 +50,29 @@ def get_cost_distance_exp_target_state(model
         return 1 - math.exp(decay_rate * (current_value - target_value))
     else:
         return 1 - math.exp(decay_rate * (target_value - current_value))
+    
+
+def get_cost_distance_immediate(model
+                                , current_state
+                                , previous_state
+                                , target_index
+                                , target_value):
+    initial_value = model.get_initial_state()[target_index]
+    current_value = current_state[target_index]
+    previous_value = previous_state[target_index]
+    sign = target_value - initial_value
+    diff = current_value - previous_value
+    if sign < 0:
+        if diff == 0:
+            return 0
+        elif diff < 0:
+            return +1
+        else:
+            return -1
+    else:
+        if diff == 0:
+            return 0
+        elif diff > 0:
+            return +1
+        else:
+            return -1
