@@ -25,7 +25,7 @@ def main(json_path):
     alpha = 0.1
     gamma = 0.95
     tau = 1.0
-    decay_rate = 0.3
+    decay_rate = 0.5
 
     # Create environment
     env = Environment(
