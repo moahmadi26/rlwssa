@@ -10,7 +10,7 @@ class MCAgent:
         self.gamma = gamma
         self.tau = tau
         self.batch_size = batch_size
-        self.previous_batch_terminal_values = 0
+        self.previous_batch_average_terminal_values = 0
 
         # Q_table: dict[(state, action)] -> float
         self.Q_table = defaultdict(float)
@@ -111,4 +111,4 @@ class MCAgent:
         sum_q_values = 0
         for value in self.Q_table.values():
             sum_q_values += value
-        print(f"average of Q-values in Q-table for this batch = {sum_q_values/ len(self.Q_table)}")
+        print(f"average of Q-values in Q-table at the end of this batch = {sum_q_values/ len(self.Q_table)}")

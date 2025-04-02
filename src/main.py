@@ -3,6 +3,7 @@ import json
 import random
 import numpy as np
 import time
+import math
 from prism_parser import parser
 
 from agent import MCAgent
@@ -22,10 +23,10 @@ def main(json_path):
     # Hyperparameters
     N = 100_000         # total episodes
     batch_size = 1000  # number of runs or episodes after which we do some update
-    alpha = 0.1
-    gamma = 0.95
-    tau = 1.0
-    decay_rate = 0.5
+    alpha = 0.1 # learning rate
+    gamma = 0.95 # discount factor
+    tau = 1.0 # softmax temperature for cases where constant temperature is used
+    decay_rate = 0.5 # decay rate for reward functions where exponential function ise used
 
     # Create environment
     env = Environment(
@@ -47,7 +48,6 @@ def main(json_path):
     # For storing stats
     moment_1 = 0.0
     moment_2 = 0.0
-    overhead_time = 0.0
     count_target = 0
     total_reward = 0
 
@@ -81,7 +81,7 @@ def main(json_path):
             if rem_time < 0:
                 rem_time = 0
             temperature = 0.5 + (rem_time / t_max)
-            # Store for agent
+            # Store the state-action pair and the observed reward in agent's memory
             agent.store_transition(state, action, reward)
 
             # Move to next state
@@ -100,6 +100,7 @@ def main(json_path):
             p_est = moment_1 / episode
             var_est = (moment_2 / episode) - p_est**2
             err_est = np.sqrt(var_est / episode)
+            print(f"Batch {math.floor(episode / batch_size)}")
             print(f"Episode {episode}, p_est={p_est}, err_est={err_est}")
             print(f"Percentage of trajectories reaching target={count_target/episode}")
             # print(f"Average reward per trajectory={total_reward/episode}")
@@ -147,9 +148,6 @@ def main(json_path):
     # print ("=" * 50)
     print(f"number of observed states = {len(q_table.keys())}")
     ###
-    print("\n" * 50)
-    for key, value in agent.Q_table.items():
-        print(f"{key} : {value}")
 
 if __name__ == "__main__":
     config_path = sys.argv[1]

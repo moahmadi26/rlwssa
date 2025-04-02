@@ -109,35 +109,13 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    # , get_cost_distance_immediate (
-                    #     self.model
-                    #     , self.current_state
-                    #     , self.previous_state
-                    #     , self.target_index
-                    #     , self.target_value        
-                    # )
-                    , get_cost_distance_exp_target_state(self.model
+                    , get_terminal_state_values(self.model
                                          , self.current_state
                                          , self.target_index
                                          , self.target_value
                                          , self.done
                                          , self.decay_rate
                                          )
-                    # , get_cost_distance_target_state(self.model
-                    #                      , self.current_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
-                    # , get_cost_distance_exp_target_state_and_immediate(self.model
-                    #                      , self.current_state
-                    #                      , self.previous_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
                     , self.get_propensities()[0]
                     )
         elif self.current_time > self.t_max:
@@ -148,35 +126,13 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    # , get_cost_distance_immediate (
-                    #     self.model
-                    #     , self.current_state
-                    #     , self.previous_state
-                    #     , self.target_index
-                    #     , self.target_value 
-                    # )
-                    , get_cost_distance_exp_target_state(self.model
+                    , get_terminal_state_values(self.model
                                          , self.current_state
                                          , self.target_index
                                          , self.target_value
                                          , self.done
                                          , self.decay_rate
                                          )
-                    # , get_cost_distance_target_state(self.model
-                    #                      , self.current_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
-                    # , get_cost_distance_exp_target_state_and_immediate(self.model
-                    #                      , self.current_state
-                    #                      , self.previous_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
                     , self.get_propensities()[0]
                     )
         else:
@@ -187,35 +143,13 @@ class Environment:
                     , self.current_time
                     , self.done
                     , self.target
-                    # , get_cost_distance_immediate (
-                    #     self.model
-                    #     , self.current_state
-                    #     , self.previous_state
-                    #     , self.target_index
-                    #     , self.target_value
-                    # )
-                    , get_cost_distance_exp_target_state(self.model
+                    , get_terminal_state_values(self.model
                                          , self.current_state
                                          , self.target_index
                                          , self.target_value
                                          , self.done
                                          , self.decay_rate
                                          )
-                    # , get_cost_distance_target_state(self.model
-                    #                      , self.current_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
-                    # , get_cost_distance_exp_target_state_and_immediate(self.model
-                    #                      , self.current_state
-                    #                      , self.previous_state
-                    #                      , self.target_index
-                    #                      , self.target_value
-                    #                      , self.done
-                    #                      , self.decay_rate
-                    #                      )
                     , self.get_propensities()[0]
                     )
 
