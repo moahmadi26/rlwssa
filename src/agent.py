@@ -90,7 +90,7 @@ class MCAgent:
                 state, action, reward = episode[t]
                 if reward != 0:
                     sum_terminal_values += reward
-                    reward = reward - self.previous_batch_terminal_values
+                    reward = reward - self.previous_batch_average_terminal_values
                     sum_reward += reward
                 G = self.gamma * G + reward  # accumulate discounted return
 
@@ -105,8 +105,8 @@ class MCAgent:
                     new_q = 150
                 self.Q_table[(state, action)] = new_q
             
-        self.previous_batch_terminal_values = sum_terminal_values / self.batch_size
-        print(f"average terminal state values (V_b) in the batch = {self.previous_batch_terminal_values}")
+        self.previous_batch_average_terminal_values = sum_terminal_values / self.batch_size
+        print(f"average terminal state values (V_b) in the batch = {self.previous_batch_average_terminal_values}")
         print(f"average reward in the batch = {sum_reward / self.batch_size}")
         sum_q_values = 0
         for value in self.Q_table.values():

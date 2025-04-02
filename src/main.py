@@ -1,9 +1,7 @@
 import sys
 import json
-import random
 import numpy as np
 import time
-import math
 from prism_parser import parser
 
 from agent import MCAgent
@@ -100,7 +98,6 @@ def main(json_path):
             p_est = moment_1 / episode
             var_est = (moment_2 / episode) - p_est**2
             err_est = np.sqrt(var_est / episode)
-            print(f"Batch {math.floor(episode / batch_size)}")
             print(f"Episode {episode}, p_est={p_est}, err_est={err_est}")
             print(f"Percentage of trajectories reaching target={count_target/episode}")
             # print(f"Average reward per trajectory={total_reward/episode}")
