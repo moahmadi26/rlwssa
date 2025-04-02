@@ -1,0 +1,9 @@
+{
+	"model_name" : "circuit0x8E",
+	"model_path" : "../crns/circuit/Circuit0x8E_100to111_unb.sm",
+	"starting_bound" : 7,
+	"csl_property" : "P=? [true U<=100 (YFP_protein=70)]",
+	"target_variable" : "YFP_protein",
+	"target_value" : "70",
+	"max_time" : "100"
+}

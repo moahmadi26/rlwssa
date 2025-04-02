@@ -10,6 +10,7 @@ class MCAgent:
         self.gamma = gamma
         self.tau = tau
         self.batch_size = batch_size
+        self.previous_batch_terminal_values = 0
 
         # Q_table: dict[(state, action)] -> float
         self.Q_table = defaultdict(float)
@@ -78,6 +79,8 @@ class MCAgent:
         We'll do a "backward pass" from the end of each episode, accumulating returns.
         Then we do an MC update to Q(s,a).
         """
+        sum_terminal_values = 0
+        sum_reward = 0
         for episode in self.episodes_memory:
             # episode is a list of (state, action, reward) from t=0..T-1
             # We'll accumulate G from the end.
@@ -85,7 +88,12 @@ class MCAgent:
             # Walk backward from the final time step and update the Q-table
             for t in reversed(range(len(episode))):
                 state, action, reward = episode[t]
+                if reward != 0:
+                    sum_terminal_values += reward
+                    reward = reward - self.previous_batch_terminal_values
+                    sum_reward += reward
                 G = self.gamma * G + reward  # accumulate discounted return
+
 
                 # Now do the incremental MC update
                 old_q = self.Q_table[(state, action)]
@@ -96,3 +104,11 @@ class MCAgent:
                 elif new_q > 150:
                     new_q = 150
                 self.Q_table[(state, action)] = new_q
+            
+        self.previous_batch_terminal_values = sum_terminal_values / self.batch_size
+        print(f"average terminal state values (V_b) in the batch = {self.previous_batch_terminal_values}")
+        print(f"average reward in the batch = {sum_reward / self.batch_size}")
+        sum_q_values = 0
+        for value in self.Q_table.values():
+            sum_q_values += value
+        print(f"average of Q-values in Q-table for this batch = {sum_q_values/ len(self.Q_table)}")

@@ -16,22 +16,22 @@ import math
 #             divergence = 1.0/weight
 #         return self.hyper_A * (math.exp(0 - divergence))
     
-def get_reward_distance_terminal_state(model
-                        , current_state
-                        , target_index
-                        , target_value
-                        , done
-                        ):
-    if not done:
-        return 0
+# def get_reward_distance_terminal_state(model
+#                         , current_state
+#                         , target_index
+#                         , target_value
+#                         , done
+#                         ):
+#     if not done:
+#         return 0
     
-    initial_value = model.get_initial_state()[target_index]
-    current_value = current_state[target_index]
-    sign = target_value - initial_value
-    if sign < 0:
-        return 1.0 / math.exp(current_value - target_value)
-    else:
-        return 1.0 / math.exp(target_value - current_value)
+#     initial_value = model.get_initial_state()[target_index]
+#     current_value = current_state[target_index]
+#     sign = target_value - initial_value
+#     if sign < 0:
+#         return 1.0 / math.exp(current_value - target_value)
+#     else:
+#         return 1.0 / math.exp(target_value - current_value)
     
 def get_cost_distance_exp_target_state(model
                                          , current_state
@@ -50,6 +50,24 @@ def get_cost_distance_exp_target_state(model
         return 1 - math.exp(decay_rate * (current_value - target_value))
     else:
         return 1 - math.exp(decay_rate * (target_value - current_value))
+    
+def get_cost_distance_target_state(model
+                                         , current_state
+                                         , target_index
+                                         , target_value
+                                         , done
+                                         , decay_rate
+                                         ):
+    if not done:
+        return 0
+    
+    initial_value = model.get_initial_state()[target_index]
+    current_value = current_state[target_index]
+    sign = target_value - initial_value
+    if sign < 0:
+        return (current_value - target_value)
+    else:
+        return (target_value - current_value)
     
 
 def get_cost_distance_immediate(model

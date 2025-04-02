@@ -20,7 +20,7 @@ def main(json_path):
     target_index = model.species_to_index_dict[target_var]
 
     # Hyperparameters
-    N = 1_000_000         # total episodes
+    N = 100_000         # total episodes
     batch_size = 1000  # number of runs or episodes after which we do some update
     alpha = 0.1
     gamma = 0.95
@@ -33,7 +33,7 @@ def main(json_path):
         target_index=target_index,
         target_value=target_value,
         t_max=t_max,
-        decay_rate = decay_rate
+        decay_rate = decay_rate,
     )
 
     # Create agent
@@ -64,8 +64,6 @@ def main(json_path):
         state, propensities = env.reset()
         weight = 1.0
         
-        
-
         # Keep track if we reached the target in this episode
         done = False
         temperature = 1.5
@@ -104,7 +102,7 @@ def main(json_path):
             err_est = np.sqrt(var_est / episode)
             print(f"Episode {episode}, p_est={p_est}, err_est={err_est}")
             print(f"Percentage of trajectories reaching target={count_target/episode}")
-            print(f"Average reward per trajectory={total_reward/episode}")
+            # print(f"Average reward per trajectory={total_reward/episode}")
             print(f"Size of Q-table={len(agent.Q_table)}")
             print("=" * 50)
 
@@ -149,6 +147,9 @@ def main(json_path):
     # print ("=" * 50)
     print(f"number of observed states = {len(q_table.keys())}")
     ###
+    print("\n" * 50)
+    for key, value in agent.Q_table.items():
+        print(f"{key} : {value}")
 
 if __name__ == "__main__":
     config_path = sys.argv[1]
