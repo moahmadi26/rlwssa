@@ -20,36 +20,40 @@ class MCAgent:
         self.current_episode = []  # will hold transitions for 1 episode
         
 
-    def select_action(self, state, propensities, average_policy, temperature):
+    def select_action(self, state, propensities, average_policy, temperature, epsilon):
         q_values = []
         for a in range(self.actions_size):
             if (state, a) in self.Q_table.keys():
                 q_values.append([a, self.Q_table[(state, a)]])
             else:
-                if len(self.Q_table) < 100_000_000:
+                if len(self.Q_table) < 50_000_000:
                     self.Q_table[(state, a)] = 0.0
-                    q_values.append([a, 0.0])
-    
-        # Boltzmann with temperature 'temp'
-        temp = temperature 
-        exp_q = [math.exp(qv[1] / temp) for qv in q_values]
-        exp_q_p = [eqv * propensities[i] for i, eqv in enumerate(exp_q)]
-        sum_exp_q_p = sum(exp_q_p)
-        probs = [v / sum_exp_q_p for v in exp_q_p]
-        # exp_q_p = [eqv[1] * propensities[i] for i, eqv in enumerate(q_values)]
-        # sum_exp_q_p = sum(exp_q_p)
-        # probs = [v / sum_exp_q_p for v in exp_q_p]
-        r = random.uniform(0, 1)
-        j = 0
-        temp_sum = 0
-        while temp_sum <= r:
-            temp_sum = temp_sum + (probs[j])
-            j = j+1
-        j = j-1
+                q_values.append([a, 0.0])
+            
+        enabled = []
+        for i, v in enumerate(propensities):
+            if v > 0:
+                enabled.append(i)
+        
+        r = random.uniform(0,1)
+
+        if r <= epsilon:
+            j = random.choice(enabled)
+        else:
+            max_q_element = None
+            max_q_index = None
+            for i in enabled:
+                if max_q_element == None:
+                    max_q_element = q_values[i][1]
+                    max_q_index = i
+                elif q_values[i][1] > max_q_index:
+                    max_q_element = q_values[i][1]
+                    max_q_index = i
+            j = max_q_index
         
         return (q_values[j][0]
-                , ((propensities[j] / exp_q_p[j]) * (sum_exp_q_p / sum(propensities)))
-                , [average_policy[i] + (exp_q[i]/sum(exp_q)) for i in range(len(average_policy))]
+                , 0
+                , [average_policy[i] + 0 for i in range(len(average_policy))]
                 )
         
 

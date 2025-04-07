@@ -24,7 +24,8 @@ def main(json_path):
     alpha = 0.1 # learning rate
     gamma = 0.95 # discount factor
     tau = 1.0 # softmax temperature for cases where constant temperature is used
-    decay_rate = 0.5 # decay rate for reward functions where exponential function ise used
+    decay_rate = 0.1 # decay rate for reward functions where exponential function ise used
+    epsilon = 0.1
 
     # Create environment
     env = Environment(
@@ -57,7 +58,9 @@ def main(json_path):
 
     start_time = time.time()
 
+    i= 0
     while episode < total_episodes:
+        i += 1
         # Start a new episode
         state, propensities = env.reset()
         weight = 1.0
@@ -68,7 +71,7 @@ def main(json_path):
 
         while not done:
             # Agent picks an action (reaction)
-            action, w, average_policy = agent.select_action(state, propensities, average_policy, temperature)
+            action, w, average_policy = agent.select_action(state, propensities, average_policy, temperature, epsilon)
             weight = weight * w
 
             # Step environment
@@ -98,7 +101,8 @@ def main(json_path):
             p_est = moment_1 / episode
             var_est = (moment_2 / episode) - p_est**2
             err_est = np.sqrt(var_est / episode)
-            print(f"Episode {episode}, p_est={p_est}, err_est={err_est}")
+            print(f"Episode {episode}")
+            # print(f"Episode {episode}, p_est={p_est}, err_est={err_est}")
             print(f"Percentage of trajectories reaching target={count_target/episode}")
             # print(f"Average reward per trajectory={total_reward/episode}")
             print(f"Size of Q-table={len(agent.Q_table)}")
@@ -113,9 +117,9 @@ def main(json_path):
     
 
     print(f"Done! Ran {total_episodes} episodes.")
-    print(f"Probability estimate: {p_hat}, var={var}, error={error}")
+    # print(f"Probability estimate: {p_hat}, var={var}, error={error}")
     print(f"Total time: {end_time - start_time:.2f} sec")
-    print(f"average policy: {[average_policy[i]/count_observed_reactions for i in range(len(average_policy))]}")
+    # print(f"average policy: {[average_policy[i]/count_observed_reactions for i in range(len(average_policy))]}")
 
     ### temporary
     print("=" * 50)
