@@ -19,10 +19,10 @@ def main(json_path):
     target_index = model.species_to_index_dict[target_var]
 
     # Hyperparameters
-    N = 100_000         # total episodes
-    batch_size = 1000  # number of runs or episodes after which we do some update
+    N = 1_000_000         # total episodes
+    batch_size = 10_000  # number of runs or episodes after which we do some update
     alpha = 0.1 # learning rate
-    gamma = 0.95 # discount factor
+    gamma = 0.9 # discount factor
     tau = 1.0 # softmax temperature for cases where constant temperature is used
     decay_rate = 0.5 # decay rate for reward functions where exponential function ise used
 

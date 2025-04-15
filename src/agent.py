@@ -26,9 +26,9 @@ class MCAgent:
             if (state, a) in self.Q_table.keys():
                 q_values.append([a, self.Q_table[(state, a)]])
             else:
-                if len(self.Q_table) < 100_000_000:
+                if len(self.Q_table) < 10_000_000:
                     self.Q_table[(state, a)] = 0.0
-                    q_values.append([a, 0.0])
+                q_values.append([a, 0.0])
     
         # Boltzmann with temperature 'temp'
         temp = temperature 
@@ -88,10 +88,11 @@ class MCAgent:
             # Walk backward from the final time step and update the Q-table
             for t in reversed(range(len(episode))):
                 state, action, reward = episode[t]
-                if reward != 0:
-                    sum_terminal_values += reward
-                    reward = reward - self.previous_batch_average_terminal_values
-                    sum_reward += reward
+                # if reward != 0:
+                #     sum_terminal_values += reward
+                #     reward = reward - self.previous_batch_average_terminal_values
+                #     sum_reward += reward
+                sum_reward += reward
                 G = self.gamma * G + reward  # accumulate discounted return
 
 
@@ -99,14 +100,14 @@ class MCAgent:
                 old_q = self.Q_table[(state, action)]
                 # target = G, so:
                 new_q = old_q + self.alpha * (G - old_q)
-                if new_q < -150:
-                    new_q = -150
-                elif new_q > 150:
-                    new_q = 150
+                if new_q < -200:
+                    new_q = -200
+                elif new_q > 200:
+                    new_q = 200
                 self.Q_table[(state, action)] = new_q
             
         self.previous_batch_average_terminal_values = sum_terminal_values / self.batch_size
-        print(f"average terminal state values (V_b) in the batch = {self.previous_batch_average_terminal_values}")
+        # print(f"average terminal state values (V_b) in the batch = {self.previous_batch_average_terminal_values}")
         print(f"average reward in the batch = {sum_reward / self.batch_size}")
         sum_q_values = 0
         for value in self.Q_table.values():
