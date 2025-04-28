@@ -1,4 +1,7 @@
 import math
+
+def reward(state, weight, done):
+    return 0 
 # def get_reward(self, current_state, previous_state, weight):
 #     initial_value = self.model.get_initial_state()[self.target_index]
 #     current_value = current_state[self.target_index]
