@@ -65,6 +65,7 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
             mu -= 1
             
             curr_traj.append(mu)
+            curr_traj.append(tau)
             count_observed_reactions += 1
             sum_biasings = [sum_biasings[i] + bias[i] for i in range(len(bias))]
 
@@ -94,3 +95,50 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
             trajectories[i] = (curr_traj, 0, False)
     
     return trajectories, sum_biasings, count_observed_reactions, sum_reward 
+
+def dwssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
+    model = parser(model_path)
+
+    for i in range(N):
+        x = model.get_initial_state()
+        t = 0
+        w = 1
+        m_1 = 0
+
+        a, a_0 = get_propensities(model, x)
+        
+        # Q-table values to bias value
+        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
+        bias = get_bias(model, q_table, x, temperature)
+        b = [a[i] * bias[i] for i in range(len(a))]
+        b_0 = sum(b)
+
+        while (t < t_max):
+            if is_target(x, target_index, target_value):
+                m_1 += w
+                break
+            
+            r1 = random.random()
+            r2 = random.random()
+            tau = (1.0 / b_0) * math.log(1.0 / r1)
+           
+            temp_sum = 0
+            mu = 0
+            while temp_sum <= r2*b_0:
+                temp_sum = temp_sum + b[mu]
+                mu += 1
+            mu -= 1
+            
+            w = w * (1.0 / bias[mu]) * math.exp((b_0 - a_0) * tau)
+            t += tau
+            reaction_updates = model.get_reactions_vector()[mu]
+            x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
+            a, a_0 = get_propensities(model, x)
+        
+            # Q-table values to bias value
+            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
+            bias = get_bias(model, q_table, x, temperature) 
+            b = [a[i] * bias[i] for i in range(len(a))]
+            b_0 = sum(b)
+
+    return m_1/N, m_1 
