@@ -8,7 +8,7 @@ import numpy as np
 
 def main(json_path):
     #############################################################################################
-    num_procs = 4       # number of processors used for parallel execution
+    num_procs = 10       # number of processors used for parallel execution
 
     # Hyperparameters
     N_train = 10_000     # total number of trajectories used to learn the q-table
@@ -39,7 +39,7 @@ def main(json_path):
     while(simulated_trajectories <= N_train):
         N_vec = [batch_size // num_procs 
             if j != num_procs - 1 
-            else N - ((num_procs - 1)*(bath_size // num_procs)) 
+            else N - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
         tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
@@ -48,19 +48,22 @@ def main(json_path):
         with multiprocessing.Pool(processes = num_procs) as pool:
             results = pool.starmap(dwssa_q_train, tasks)
         
+        trajectories = [item for sublist in results for item in sublist[0]] 
+        print(len(trajectories))
+        # trajectories contain all the simulated trajectories among
         simulated_trajectories += batch_size
 
     
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
     print("Running the dwSSA with the learned q_table...")
-
+    quit()
     start_time = time.time()
 
     p_vector = [None] * K
 
     # run K ensembles of size N. Keep the probablity estimates in a vector
-    for in in range(K):
+    for i in range(K):
         N_vec = [N // num_procs 
                 if j != num_procs - 1 
                 else N - ((num_procs - 1)*(N // num_procs)) 
