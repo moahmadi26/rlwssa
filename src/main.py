@@ -8,11 +8,11 @@ import numpy as np
 
 def main(json_path):
     #############################################################################################
-    num_procs = 10       # number of processors used for parallel execution
+    num_procs = 4       # number of processors used for parallel execution
 
     # Hyperparameters
     N_train = 10_000     # total number of trajectories used to learn the q-table
-    batch_size = 1000    # the number of trajectories simulated before q-table is updated
+    batch_size = 10_000    # the number of trajectories simulated before q-table is updated
     rho = 0.05           # the percentage of trajectories from a batch selected as the current event
     min_temp = 1         # minimum softmax temperature
     max_temp = 1         # maximum softmax temperature
@@ -36,7 +36,7 @@ def main(json_path):
     simulated_trajectories = 0
     start_time = time.time()
     
-    while(simulated_trajectories <= N_train):
+    while(simulated_trajectories < N_train):
         N_vec = [batch_size // num_procs 
             if j != num_procs - 1 
             else N - ((num_procs - 1)*(batch_size // num_procs)) 
