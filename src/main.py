@@ -39,15 +39,18 @@ def main(json_path):
     while(simulated_trajectories < N_train):
         N_vec = [batch_size // num_procs 
             if j != num_procs - 1 
-            else N - ((num_procs - 1)*(batch_size // num_procs)) 
+            else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
+        print(N_vec)
         tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
                  for N_vec_j in N_vec]
-        
+       
+        print("1")
         with multiprocessing.Pool(processes = num_procs) as pool:
             results = pool.starmap(dwssa_q_train, tasks)
-        
+        print("2")
+
         trajectories = [item for sublist in results for item in sublist[0]] 
         print(len(trajectories))
         # trajectories contain all the simulated trajectories among
