@@ -2,6 +2,8 @@
 venv_address.sh
 *.swp
 results/
+results.txt
+*.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
