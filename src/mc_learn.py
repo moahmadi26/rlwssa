@@ -16,7 +16,6 @@ def update_q_table(trajectories, q_table, learning_rate, discount_factor):
         start = len(episode) - 5
         for i in (range(start, -1, -4)):
             state, action, reward = episode[i], episode[i+1], episode[i+3]
-            
             sum_reward += reward
             G = discount_factor * G + reward  # accumulate discounted return
 

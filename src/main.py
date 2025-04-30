@@ -24,7 +24,7 @@ def main(json_path):
     N = 100_000             # number of trajectories used in each ensemble 
     epsilon = 0.1           # epsilon value in epsilon greedy
     learning_rate = 0.1     # learning rate
-    discount_factor = 1.0   # discount factor
+    discount_factor = 0.95   # discount factor
     #############################################################################################
    
     results_file = open("results.txt", "w")
