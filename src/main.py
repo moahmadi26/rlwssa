@@ -12,19 +12,19 @@ import yaml
 
 def main(json_path):
     #############################################################################################
-    num_procs = 10          # number of processors used for parallel execution
+    num_procs = 15           # number of processors used for parallel execution
 
     # Hyperparameters
     N_train = 100_000        # total number of trajectories used to learn the q-table
-    batch_size = 1000       # the number of trajectories simulated before q-table is updated
-    rho = 0.05              # the percentage of trajectories from a batch selected as the current event
-    min_temp = 1            # minimum softmax temperature
-    max_temp = 1            # maximum softmax temperature
-    K = 4                   # K ensebles of size N are used to estimate the probability of event
-    N = 100_000             # number of trajectories used in each ensemble 
-    epsilon = 0.1           # epsilon value in epsilon greedy
-    learning_rate = 0.1     # learning rate
+    batch_size = 1000        # the number of trajectories simulated before q-table is updated
+    min_temp = 0.5           # minimum softmax temperature
+    max_temp = 1.5           # maximum softmax temperature
+    K = 4                    # K ensebles of size N are used to estimate the probability of event
+    N = 100_000              # number of trajectories used in each ensemble 
+    epsilon = 0.1            # epsilon value in epsilon greedy
+    learning_rate = 0.1      # learning rate
     discount_factor = 0.95   # discount factor
+    distance_multiplier = 1.0  # the multiplier in the distance term of the reward
     #############################################################################################
    
     results_file = open("results.txt", "w")
@@ -60,7 +60,8 @@ def main(json_path):
             results = pool.starmap(wssa_q_train, tasks)
 
         trajectories = [item for sublist in results for item in sublist[0]] 
-        q_table = update_q_table(trajectories, q_table, learning_rate, discount_factor) 
+        q_table = update_q_table(model, trajectories, q_table, learning_rate, discount_factor
+                                 , distance_multiplier, target_index, target_value) 
         simulated_trajectories += batch_size
 
     
@@ -96,22 +97,24 @@ def main(json_path):
         
         m_1 = 0.0
         for result in results:
-            m_1 += result[1]
+            m_1 += result
 
         p_vector[i] = m_1 / N
     
     p_hat = sum(p_vector)
+    p_hat = p_hat / K
     s_2 = [(p_vector[i] - p_hat)**2 for i in range(K)]
     s_2 = sum(s_2) / (K-1)
     error = math.sqrt(s_2) / math.sqrt(K)
 
-    print(f"simulating {N} trajectories took {time.time() - start_time} seconds.") 
+    print(f"simulating {K * N} trajectories took {time.time() - start_time} seconds.") 
     print(f"probability estimate = {p_hat}")
     print(f"standard error = {error}")
     results_file.write(f"simulating {N} trajectories took {time.time() - start_time} seconds. \n"
                        f"probability estimate = {p_hat} \n"
                        f"standard error = {error}"
                        )
+    print(p_vector)
 if __name__ == "__main__":
     config_path = sys.argv[1]
     main(config_path)

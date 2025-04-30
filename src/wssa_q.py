@@ -22,21 +22,21 @@ def get_bias(model, q_table, state, temperature):
         else:
             q_values.append(0.0)
      
-    q_max = max(q_values)
-    q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    # q_max = max(q_values)
+    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
 
 def get_bias_train(model, q_table, state, temperature, epsilon):
     a, a_0 = get_propensities(model, state)
-    # nz_indices = [] 
-    # for i in range(len(a)):
-    #     if a[i] > 0: nz_indices.append(i)
-    # r = random.random()
-    # if r < epsilon:
-    #     index = random.choice(nz_indices)
-    #     return [1.0 if i == index else 0.0 for i in range(len(a))]
+    nz_indices = [] 
+    for i in range(len(a)):
+        if a[i] > 0: nz_indices.append(i)
+    r = random.random()
+    if r < epsilon:
+        index = random.choice(nz_indices)
+        return [1.0 if i == index else 0.0 for i in range(len(a))]
     
     q_values = []
     for action in range(len(a)):
@@ -45,8 +45,8 @@ def get_bias_train(model, q_table, state, temperature, epsilon):
         else:
             q_values.append(0.0)
      
-    q_max = max(q_values)
-    q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    # q_max = max(q_values)
+    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
@@ -128,11 +128,12 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
     with suppress_c_output():
         model = parser(model_path)
 
+    m_1 = 0
+    
     for i in range(N):
         x = model.get_initial_state()
         t = 0
         w = 1
-        m_1 = 0
 
         a, a_0 = get_propensities(model, x)
         
@@ -170,4 +171,4 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
-    return m_1/N, m_1 
+    return m_1 
