@@ -3,6 +3,7 @@ import random
 from prism_parser import parser
 from utils import get_reaction_rate, is_target
 from reward import reward
+from suppress import suppress_c_output
 
 def get_propensities(model, state):
     reactions = model.get_reactions_vector()
@@ -12,21 +13,47 @@ def get_propensities(model, state):
     return a, a_0
 
 def get_bias(model, q_table, state, temperature):
-    return [1] * len(model.get_reactions_vector())
-    # reactions = model.get_reactions_vector()
-    # q_values = []
-    # for a in range(len(reactions)):
-    #     if (state, a) in q_table.keys():
-    #         q_values.append(q_table[(state, a)])
-    #     else:
-    #         q_values.append(0.0)
-    # 
-    # exp_q = [math.exp(qv / temperature) for qv in q_values]
-    # sum_exp_q = sum(exp_q)
-    # return [e/sum_exp_q for e in exp_q]
+    a, a_0 = get_propensities(model, state)
+    q_values = []
+    
+    for action in range(len(a)):
+        if (state, action) in q_table.keys():
+            q_values.append(q_table[(state, action)])
+        else:
+            q_values.append(0.0)
+     
+    # q_max = max(q_values)
+    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    exp_q = [math.exp(qv / temperature) for qv in q_values]
+    sum_exp_q = sum(exp_q)
+    return [e/sum_exp_q for e in exp_q]
 
-def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
-    model = parser(model_path)
+def get_bias_train(model, q_table, state, temperature, epsilon):
+    a, a_0 = get_propensities(model, state)
+    # nz_indices = [] 
+    # for i in range(len(a)):
+    #     if a[i] > 0: nz_indices.append(i)
+    # r = random.random()
+    # if r < epsilon:
+    #     index = random.choice(nz_indices)
+    #     return [1.0 if i == index else 0.0 for i in range(len(a))]
+    
+    q_values = []
+    for action in range(len(a)):
+        if (state, action) in q_table.keys():
+            q_values.append(q_table[(state, action)])
+        else:
+            q_values.append(0.0)
+     
+    # q_max = max(q_values)
+    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    exp_q = [math.exp(qv / temperature) for qv in q_values]
+    sum_exp_q = sum(exp_q)
+    return [e/sum_exp_q for e in exp_q]
+
+def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, target_value, epsilon, q_table):
+    with suppress_c_output():
+        model = parser(model_path)
     sum_reward = 0
     count_observed_reactions = 0
     sum_biasings = [0.0] * len(model.get_reactions_vector())
@@ -43,7 +70,7 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
         
         # Q-table values to bias value
         temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-        bias = get_bias(model, q_table, x, temperature)
+        bias = get_bias_train(model, q_table, x, temperature, epsilon)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
 
@@ -55,7 +82,7 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
             
             r1 = random.random()
             r2 = random.random()
-            tau = (1.0 / b_0) * math.log(1.0 / r1)
+            tau = (1.0 / a_0) * math.log(1.0 / r1)
            
             temp_sum = 0
             mu = 0
@@ -70,18 +97,19 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
             sum_biasings = [sum_biasings[i] + bias[i] for i in range(len(bias))]
 
 
-            w = w * (1.0 / bias[mu]) * math.exp((b_0 - a_0) * tau)
+            w = w * (a[mu] / b[mu]) * (b_0 / a_0)
             t += tau
             reaction_updates = model.get_reactions_vector()[mu]
+            x_prev = x
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
             done = True if t >= t_max else False
-            r = reward(x, w, done)
+            r = reward(model, x_prev, x, target_index, target_value, (a[mu] / b[mu]) * (b_0 / a_0), done)
             sum_reward += r
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
             temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-            bias = get_bias(model, q_table, x, temperature) 
+            bias = get_bias_train(model, q_table, x, temperature, epsilon) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
@@ -96,8 +124,9 @@ def dwssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, targe
     
     return trajectories, sum_biasings, count_observed_reactions, sum_reward 
 
-def dwssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
-    model = parser(model_path)
+def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
+    with suppress_c_output():
+        model = parser(model_path)
 
     for i in range(N):
         x = model.get_initial_state()
@@ -120,7 +149,7 @@ def dwssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_valu
             
             r1 = random.random()
             r2 = random.random()
-            tau = (1.0 / b_0) * math.log(1.0 / r1)
+            tau = (1.0 / a_0) * math.log(1.0 / r1)
            
             temp_sum = 0
             mu = 0
@@ -129,7 +158,7 @@ def dwssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_valu
                 mu += 1
             mu -= 1
             
-            w = w * (1.0 / bias[mu]) * math.exp((b_0 - a_0) * tau)
+            w = w * (a[mu] / b[mu]) * (b_0 / a_0)
             t += tau
             reaction_updates = model.get_reactions_vector()[mu]
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))

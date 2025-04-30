@@ -2,24 +2,33 @@ import sys
 import json
 import time
 import multiprocessing
-from dwssa_q import dwssa_q_train, dwssa_q
+from wssa_q import wssa_q_train, wssa_q
+from mc_learn import update_q_table
 from prism_parser import parser
 import numpy as np
+import math
+from suppress import suppress_c_output
+import yaml
 
 def main(json_path):
     #############################################################################################
-    num_procs = 4       # number of processors used for parallel execution
+    num_procs = 10          # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 10_000     # total number of trajectories used to learn the q-table
-    batch_size = 10_000    # the number of trajectories simulated before q-table is updated
-    rho = 0.05           # the percentage of trajectories from a batch selected as the current event
-    min_temp = 1         # minimum softmax temperature
-    max_temp = 1         # maximum softmax temperature
-    K = 4                # K ensebles of size N are used to estimate the probability of event
-    N = 100_000          # number of trajectories used in each ensemble 
+    N_train = 100_000        # total number of trajectories used to learn the q-table
+    batch_size = 1000       # the number of trajectories simulated before q-table is updated
+    rho = 0.05              # the percentage of trajectories from a batch selected as the current event
+    min_temp = 1            # minimum softmax temperature
+    max_temp = 1            # maximum softmax temperature
+    K = 4                   # K ensebles of size N are used to estimate the probability of event
+    N = 100_000             # number of trajectories used in each ensemble 
+    epsilon = 0.1           # epsilon value in epsilon greedy
+    learning_rate = 0.1     # learning rate
+    discount_factor = 1.0   # discount factor
     #############################################################################################
    
+    results_file = open("results.txt", "w")
+
     with open(json_path, 'r') as f:
         json_data = json.load(f)
 
@@ -27,7 +36,9 @@ def main(json_path):
     target_var = json_data['target_variable']
     target_value = int(json_data['target_value'])
     t_max = float(json_data['max_time'])
-    model = parser(model_path)
+    
+    with suppress_c_output():
+        model = parser(model_path)
     target_index = model.species_to_index_dict[target_var]
     
     # Q-table is stored as a dictionary : (state, action) -> Q-value
@@ -42,25 +53,30 @@ def main(json_path):
             else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
-        print(N_vec)
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, epsilon, q_table) 
                  for N_vec_j in N_vec]
        
-        print("1")
         with multiprocessing.Pool(processes = num_procs) as pool:
-            results = pool.starmap(dwssa_q_train, tasks)
-        print("2")
+            results = pool.starmap(wssa_q_train, tasks)
 
         trajectories = [item for sublist in results for item in sublist[0]] 
-        print(len(trajectories))
-        # trajectories contain all the simulated trajectories among
+        q_table = update_q_table(trajectories, q_table, learning_rate, discount_factor) 
         simulated_trajectories += batch_size
 
     
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
-    print("Running the dwSSA with the learned q_table...")
-    quit()
+    print(f"Length of q-table = {len(q_table)}")
+    print("Running the wSSA_q with the learned q_table...")
+    results_file.write(f"Learning phase finished. {N_train} trajectories were simulated.\n"
+                       f"Time spent learning: {time.time() - start_time} seconds. \n"
+                       f"Length of q-table = {len(q_table)}"
+                       f"Running the wSSA_q with the learned q_table... \n"
+                          )
+    
+    with open('q_table.yaml', 'w') as f:
+        yaml.dump(q_table, f)
+
     start_time = time.time()
 
     p_vector = [None] * K
@@ -71,12 +87,12 @@ def main(json_path):
                 if j != num_procs - 1 
                 else N - ((num_procs - 1)*(N // num_procs)) 
                 for j in range(num_procs)]
-
+        
         tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
                           for N_vec_j in N_vec]
             
         with multiprocessing.Pool(processes = num_procs) as pool:
-                results = pool.starmap(dwssa_q, tasks)
+                results = pool.starmap(wssa_q, tasks)
         
         m_1 = 0.0
         for result in results:
@@ -85,14 +101,17 @@ def main(json_path):
         p_vector[i] = m_1 / N
     
     p_hat = sum(p_vector)
-    s_2 = [(p_vector[i] - p_hat)**2 for i in range(len(p_vector))]
+    s_2 = [(p_vector[i] - p_hat)**2 for i in range(K)]
     s_2 = sum(s_2) / (K-1)
     error = math.sqrt(s_2) / math.sqrt(K)
 
     print(f"simulating {N} trajectories took {time.time() - start_time} seconds.") 
-    print(f"probability estimate = {p-hat}")
+    print(f"probability estimate = {p_hat}")
     print(f"standard error = {error}")
-
+    results_file.write(f"simulating {N} trajectories took {time.time() - start_time} seconds. \n"
+                       f"probability estimate = {p_hat} \n"
+                       f"standard error = {error}"
+                       )
 if __name__ == "__main__":
     config_path = sys.argv[1]
     main(config_path)
