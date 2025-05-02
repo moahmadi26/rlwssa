@@ -1,24 +1,33 @@
 import math
+from utils import is_target
 
-def reward(model, prev_state, curr_state, target_index, target_value, weight, done):
-    initial_value = model.get_initial_state()[target_index]
-    current_value = curr_state[target_index]
-    previous_value = prev_state[target_index]
-    sign = target_value - initial_value
-    diff = current_value - previous_value
-    if sign < 0:
-        if diff == 0:
-            dist_reward = 0
-        elif diff < 0:
-            dist_reward = +1
-        else:
-            dist_reward = -1
+def reward(model, prev_state, curr_state, target_index, target_value, weight, max_distance_reward, done):
+    
+    # terminal reward
+    # if not (done or is_target(curr_state, target_index, target_value)):
+    #     dist_reward = 0
+    # else:
+    #     terminal_dist = abs(curr_state[target_index] - target_value)
+    #     dist_reward = max_distance_reward * math.exp(-terminal_dist)
+    
+    
+
+    # step reward
+    curr_dist = abs(target_value - curr_state[target_index])
+    prev_dist = abs(target_value - prev_state[target_index])
+    dist_reward = 0
+    if curr_dist > prev_dist:
+        dist_reward = -1
+    elif curr_dist == prev_dist:
+        dist_reward = 0
     else:
-        if diff == 0:
-            dist_reward = 0
-        elif diff > 0:
-            dist_reward = +1 
-        else:
-            dist_reward = -1
+        dist_reward = prev_dist - curr_dist
+    
+    return dist_reward
 
-    return dist_reward #+ math.log(weight)
+
+
+
+
+
+

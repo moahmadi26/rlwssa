@@ -12,19 +12,20 @@ import yaml
 
 def main(json_path):
     #############################################################################################
-    num_procs = 15           # number of processors used for parallel execution
+    num_procs = 15             # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 100_000        # total number of trajectories used to learn the q-table
-    batch_size = 1000        # the number of trajectories simulated before q-table is updated
-    min_temp = 0.5           # minimum softmax temperature
-    max_temp = 1.5           # maximum softmax temperature
-    K = 4                    # K ensebles of size N are used to estimate the probability of event
-    N = 100_000              # number of trajectories used in each ensemble 
-    epsilon = 0.1            # epsilon value in epsilon greedy
-    learning_rate = 0.1      # learning rate
-    discount_factor = 0.95   # discount factor
+    N_train = 10_000        # total number of trajectories used to learn the q-table
+    batch_size = 100          # the number of trajectories simulated before q-table is updated
+    min_temp = 1.0             # minimum softmax temperature
+    max_temp = 1.0             # maximum softmax temperature
+    K = 4                      # K ensebles of size N are used to estimate the probability of event
+    N = 10_000                 # number of trajectories used in each ensemble 
+    epsilon = 0.0005             # epsilon value in epsilon greedy
+    learning_rate = 0.01       # learning rate
+    discount_factor = 1.0      # discount factor
     distance_multiplier = 1.0  # the multiplier in the distance term of the reward
+    max_distance_reward = 1.0  # the maximum distance reward given to a trajectory
     #############################################################################################
    
     results_file = open("results.txt", "w")
@@ -45,6 +46,7 @@ def main(json_path):
     q_table = {}
     
     simulated_trajectories = 0
+    batch_number = 0
     start_time = time.time()
     
     while(simulated_trajectories < N_train):
@@ -53,18 +55,27 @@ def main(json_path):
             else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, epsilon, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index
+                  , target_value, epsilon, max_distance_reward, q_table) 
                  for N_vec_j in N_vec]
        
         with multiprocessing.Pool(processes = num_procs) as pool:
             results = pool.starmap(wssa_q_train, tasks)
 
         trajectories = [item for sublist in results for item in sublist[0]] 
-        q_table = update_q_table(model, trajectories, q_table, learning_rate, discount_factor
-                                 , distance_multiplier, target_index, target_value) 
+        q_table, sum_reward, average_distance = update_q_table(model, trajectories, q_table
+                                                               , learning_rate, discount_factor
+                                                               , distance_multiplier, target_index, target_value) 
         simulated_trajectories += batch_size
+        batch_number += 1
+
+        print(f"batch: {batch_number}")
+        print(f"average terminal state distance : {average_distance}")
+        print(f"sum rewards : {sum_reward}")
+        print("-" * 50)
 
     
+    print("=" * 50)
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
     print(f"Length of q-table = {len(q_table)}")
@@ -81,6 +92,7 @@ def main(json_path):
     start_time = time.time()
 
     p_vector = [None] * K
+    count = [None] * K
 
     # run K ensembles of size N. Keep the probablity estimates in a vector
     for i in range(K):
@@ -96,8 +108,12 @@ def main(json_path):
                 results = pool.starmap(wssa_q, tasks)
         
         m_1 = 0.0
+        count_ = 0
         for result in results:
-            m_1 += result
+            m_1 += result[0]
+            count_ += result[1]
+        
+        count[i] = count_ 
 
         p_vector[i] = m_1 / N
     
@@ -115,6 +131,7 @@ def main(json_path):
                        f"standard error = {error}"
                        )
     print(p_vector)
+    print(count)
 if __name__ == "__main__":
     config_path = sys.argv[1]
     main(config_path)

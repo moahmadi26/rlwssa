@@ -21,9 +21,10 @@ def get_bias(model, q_table, state, temperature):
             q_values.append(q_table[(state, action)])
         else:
             q_values.append(0.0)
-     
+    
     # q_max = max(q_values)
     # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
@@ -44,14 +45,16 @@ def get_bias_train(model, q_table, state, temperature, epsilon):
             q_values.append(q_table[(state, action)])
         else:
             q_values.append(0.0)
-     
+    
     # q_max = max(q_values)
     # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
 
-def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, target_value, epsilon, q_table):
+def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
+                  , target_value, epsilon, max_distance_reward, q_table):
     with suppress_c_output():
         model = parser(model_path)
     sum_reward = 0
@@ -103,7 +106,7 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index, target
             x_prev = x
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
             done = True if t >= t_max else False
-            r = reward(model, x_prev, x, target_index, target_value, (a[mu] / b[mu]) * (b_0 / a_0), done)
+            r = reward(model, x_prev, x, target_index, target_value, w, max_distance_reward, done)
             sum_reward += r
             a, a_0 = get_propensities(model, x)
         
@@ -129,6 +132,7 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
         model = parser(model_path)
 
     m_1 = 0
+    count_success = 0
     
     for i in range(N):
         x = model.get_initial_state()
@@ -146,6 +150,7 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
         while (t < t_max):
             if is_target(x, target_index, target_value):
                 m_1 += w
+                count_success += 1
                 break
             
             r1 = random.random()
@@ -171,4 +176,4 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
-    return m_1 
+    return m_1, count_success 

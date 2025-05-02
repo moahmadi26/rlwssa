@@ -10,39 +10,26 @@ def update_q_table(model, trajectories, q_table, learning_rate
     Then we do an MC update to Q(s,a).
     """
     sum_reward = 0
-    
+    sum_distance = 0
+
     for element in trajectories:
         
         # episode is a list of [state_t, action_t, tau_t, reward_t, state_t+1, ...] from t=0..T-1
         episode = element[0]
         
+        sum_distance += abs(episode[-1][target_index] - target_value)
+
         # We'll accumulate G from the end.
         G = 0.0
         
-        weight = 0
-        var_multiplier = 0
-        if element[2]: 
-            var_multiplier = 0.01
-            weight = element[1]
-        
         # Walk backward from the final time step and update the Q-table
         start = len(episode) - 5
-        flag = True
 
         for i in (range(start, -1, -4)):
             state, action, reward = episode[i], episode[i+1], episode[i+3]
-            if flag:
-                if weight > 0:
-                    reward = reward # + (-math.log(weight))
-                flag = False
-            
-            q_value = q_table.get((state, action), 0.0)
-            num_reactions = len(model.get_reactions_vector())
-            Z = sum([math.exp(q_table.get((state, i), 0.0)) for i in range(num_reactions)])
-
-            reward = reward * distance_multiplier
-            reward = reward # + (var_multiplier * q_value - math.log(Z))
+           
             sum_reward += reward
+            
             G = discount_factor * G + reward  # accumulate discounted return
 
 
@@ -52,4 +39,12 @@ def update_q_table(model, trajectories, q_table, learning_rate
             new_q = old_q + learning_rate * (G - old_q)
             
             q_table[(state, action)] = new_q
-    return q_table
+    
+    return q_table, sum_reward, sum_distance/len(trajectories) 
+
+def stopping_criteria(curr_reward, past_rewards, window_size, min_delta):
+    mean_reward = sum(past_rewards) / len(past_rewards)
+    delta = curr_reward - mean_reward
+#     if delta / curr_reward < min_delta:
+#         return true, [curr_reward if i == 0 else past_reward[i-1] for 
+    
