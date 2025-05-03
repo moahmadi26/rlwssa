@@ -3,7 +3,7 @@ import json
 import time
 import multiprocessing
 from wssa_q import wssa_q_train, wssa_q
-from mc_learn import update_q_table
+from expected_sarsa import update_q_table
 from prism_parser import parser
 import numpy as np
 import math
@@ -15,14 +15,13 @@ def main(json_path):
     num_procs = 15             # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 10_000        # total number of trajectories used to learn the q-table
+    N_train = 100_000        # total number of trajectories used to learn the q-table
     batch_size = 100          # the number of trajectories simulated before q-table is updated
-    min_temp = 1.0             # minimum softmax temperature
-    max_temp = 1.0             # maximum softmax temperature
+    temperature = 2.0           # softmax temperature
     K = 4                      # K ensebles of size N are used to estimate the probability of event
     N = 10_000                 # number of trajectories used in each ensemble 
-    epsilon = 0.0005             # epsilon value in epsilon greedy
-    learning_rate = 0.01       # learning rate
+    epsilon = 0.005             # epsilon value in epsilon greedy
+    learning_rate = 0.1       # learning rate
     discount_factor = 1.0      # discount factor
     distance_multiplier = 1.0  # the multiplier in the distance term of the reward
     max_distance_reward = 1.0  # the maximum distance reward given to a trajectory
@@ -55,7 +54,7 @@ def main(json_path):
             else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index
+        tasks = [(model_path, N_vec_j, t_max, temperature, target_index
                   , target_value, epsilon, max_distance_reward, q_table) 
                  for N_vec_j in N_vec]
        
@@ -65,7 +64,8 @@ def main(json_path):
         trajectories = [item for sublist in results for item in sublist[0]] 
         q_table, sum_reward, average_distance = update_q_table(model, trajectories, q_table
                                                                , learning_rate, discount_factor
-                                                               , distance_multiplier, target_index, target_value) 
+                                                               , distance_multiplier, target_index
+                                                               , target_value, temperature) 
         simulated_trajectories += batch_size
         batch_number += 1
 
@@ -101,7 +101,7 @@ def main(json_path):
                 else N - ((num_procs - 1)*(N // num_procs)) 
                 for j in range(num_procs)]
         
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, temperature, target_index, target_value, q_table) 
                           for N_vec_j in N_vec]
             
         with multiprocessing.Pool(processes = num_procs) as pool:

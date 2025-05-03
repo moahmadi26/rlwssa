@@ -12,8 +12,12 @@ def get_propensities(model, state):
     a_0 = sum(a)
     return a, a_0
 
-def get_bias(model, q_table, state, temperature):
+def get_bias(model, q_table, state):
     a, a_0 = get_propensities(model, state)
+    nz_indices = [] 
+    for i in range(len(a)):
+        if a[i] > 0: nz_indices.append(i)
+    
     q_values = []
     
     for action in range(len(a)):
@@ -24,12 +28,11 @@ def get_bias(model, q_table, state, temperature):
     
     # q_max = max(q_values)
     # q_values = [q_values[i] - q_max for i in range(len(q_values))]
-    
-    exp_q = [math.exp(qv / temperature) for qv in q_values]
+    exp_q = [math.exp(qv / temperature) if i in nz_indices else 0.0 for i, qv in enumerate(q_values)]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
 
-def get_bias_train(model, q_table, state, temperature, epsilon):
+def get_bias_train(model, q_table, state, temperature, epsilon = 0.0):
     a, a_0 = get_propensities(model, state)
     nz_indices = [] 
     for i in range(len(a)):
@@ -49,14 +52,16 @@ def get_bias_train(model, q_table, state, temperature, epsilon):
     # q_max = max(q_values)
     # q_values = [q_values[i] - q_max for i in range(len(q_values))]
     
-    exp_q = [math.exp(qv / temperature) for qv in q_values]
+    exp_q = [math.exp(qv / temperature) if i in nz_indices else 0.0 for i, qv in enumerate(q_values)]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
 
-def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
+def wssa_q_train (model_path, N, t_max, temperature, target_index
                   , target_value, epsilon, max_distance_reward, q_table):
+    
     with suppress_c_output():
         model = parser(model_path)
+    
     sum_reward = 0
     count_observed_reactions = 0
     sum_biasings = [0.0] * len(model.get_reactions_vector())
@@ -72,7 +77,6 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
         a, a_0 = get_propensities(model, x)
         
         # Q-table values to bias value
-        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
         bias = get_bias_train(model, q_table, x, temperature, epsilon)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
@@ -111,12 +115,10 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
-            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
             bias = get_bias_train(model, q_table, x, temperature, epsilon) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
-            
             curr_traj.append(r)
             curr_traj.append(x)
         
@@ -127,7 +129,8 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
     
     return trajectories, sum_biasings, count_observed_reactions, sum_reward 
 
-def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
+def wssa_q (model_path, N, t_max, target_index, target_value, q_table):
+    
     with suppress_c_output():
         model = parser(model_path)
 
@@ -142,7 +145,6 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
         a, a_0 = get_propensities(model, x)
         
         # Q-table values to bias value
-        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
         bias = get_bias(model, q_table, x, temperature)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
@@ -171,8 +173,7 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
-            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-            bias = get_bias(model, q_table, x, temperature) 
+            bias = get_bias(model, q_table, x) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
