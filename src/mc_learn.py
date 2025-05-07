@@ -2,7 +2,7 @@ from utils import is_target
 import math
 
 def update_q_table(model, trajectories, q_table, learning_rate
-                   , discount_factor, distance_multiplier, target_index, target_value):
+                   , discount_factor, target_index, target_value):
     """
     Perform a Monte Carlo update on each stored trajectory in trajectories 
 
