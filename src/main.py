@@ -15,14 +15,14 @@ def main(json_path):
     num_procs = 15              # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 100_000           # total number of trajectories used to learn the q-table
-    batch_size = 100            # the number of trajectories simulated before q-table is updated
+    N_train = 10_000           # total number of trajectories used to learn the q-table
+    batch_size = 100           # the number of trajectories simulated before q-table is updated
     min_temp = 1.0              # minimum softmax temperature
     max_temp = 1.0              # maximum softmax temperature
     K = 4                       # K ensebles of size N are used to estimate the probability of event
     N = 10_000                  # number of trajectories used in each ensemble 
     epsilon = 0.0005            # epsilon value in epsilon greedy
-    learning_rate = 0.01        # learning rate
+    learning_rate = 0.1        # learning rate
     discount_factor = 1.0       # discount factor
     distance_multiplier = 1.0   # the multiplier in the distance term of the reward
     max_distance_reward = 20.0  # the maximum distance reward given to a trajectory
@@ -74,7 +74,7 @@ def main(json_path):
         print(f"sum rewards : {sum_reward}")
         print("-" * 50)
 
-    
+        learning_rate = max(learning_rate*0.9, 0.0001) 
     print("=" * 50)
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
