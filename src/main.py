@@ -68,13 +68,15 @@ def main(json_path):
                                                                , distance_multiplier, target_index, target_value) 
         simulated_trajectories += batch_size
         batch_number += 1
-
+        
+        print(f"learning_rate = {learning_rate}")
+        learning_rate = max(learning_rate*0.99, 0.0001) 
+        
         print(f"batch: {batch_number}")
         print(f"average terminal state distance : {average_distance}")
         print(f"sum rewards : {sum_reward}")
         print("-" * 50)
 
-        learning_rate = max(learning_rate*0.9, 0.0001) 
     print("=" * 50)
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
@@ -126,7 +128,7 @@ def main(json_path):
     print(f"simulating {K * N} trajectories took {time.time() - start_time} seconds.") 
     print(f"probability estimate = {p_hat}")
     print(f"standard error = {error}")
-    results_file.write(f"simulating {N} trajectories took {time.time() - start_time} seconds. \n"
+    results_file.write(f"simulating {K * N} trajectories took {time.time() - start_time} seconds. \n"
                        f"probability estimate = {p_hat} \n"
                        f"standard error = {error}"
                        )
