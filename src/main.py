@@ -3,7 +3,7 @@ import json
 import time
 import multiprocessing
 from wssa_q import wssa_q_train, wssa_q
-from mc_learn import update_q_table
+from reinforce import reinforce_update
 from prism_parser import parser
 import numpy as np
 import math
@@ -17,15 +17,11 @@ def main(json_path):
     # Hyperparameters
     N_train = 10_000           # total number of trajectories used to learn the q-table
     batch_size = 100           # the number of trajectories simulated before q-table is updated
-    min_temp = 1.0              # minimum softmax temperature
-    max_temp = 1.0              # maximum softmax temperature
+    temperature = 5.0              # softmax temperature
     K = 4                       # K ensebles of size N are used to estimate the probability of event
     N = 10_000                  # number of trajectories used in each ensemble 
-    epsilon = 0.0005            # epsilon value in epsilon greedy
     learning_rate = 0.1        # learning rate
     discount_factor = 1.0       # discount factor
-    distance_multiplier = 1.0   # the multiplier in the distance term of the reward
-    max_distance_reward = 20.0  # the maximum distance reward given to a trajectory
     #############################################################################################
    
     results_file = open("results.txt", "w")
@@ -55,26 +51,31 @@ def main(json_path):
             else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
             for j in range(num_procs)]
         
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index
-                  , target_value, epsilon, max_distance_reward, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, target_index, target_value, q_table, temperature) 
                  for N_vec_j in N_vec]
        
         with multiprocessing.Pool(processes = num_procs) as pool:
             results = pool.starmap(wssa_q_train, tasks)
 
         trajectories = [item for sublist in results for item in sublist[0]] 
-        q_table, sum_reward, average_distance = update_q_table(model, trajectories, q_table
-                                                               , learning_rate, discount_factor
-                                                               , distance_multiplier, target_index, target_value) 
+        q_table, sum_reward, average_distance = reinforce_update(model, trajectories, q_table, learning_rate
+                                                                , discount_factor, target_index, target_value
+                                                                , temperature, True)
+ 
         simulated_trajectories += batch_size
         batch_number += 1
 
         print(f"batch: {batch_number}")
         print(f"average terminal state distance : {average_distance}")
         print(f"sum rewards : {sum_reward}")
-        print("-" * 50)
 
-        learning_rate = max(learning_rate*0.9, 0.0001) 
+        # learning_rate = max(learning_rate*0.9, 0.0001) 
+        print(f"learning_rate : {learning_rate}")
+        print(f"temperature : {temperature}")
+        print("-" * 50)
+        learning_rate = max(learning_rate * 0.99, 0.0001)
+        temperature = max(temperature * 0.95, 1.0)
+
     print("=" * 50)
     print(f"Learning phase finished. {N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
@@ -94,14 +95,14 @@ def main(json_path):
     p_vector = [None] * K
     count = [None] * K
 
-    # run K ensembles of size N. Keep the probablity estimates in a vector
+        # run K ensembles of size N. Keep the probablity estimates in a vector
     for i in range(K):
         N_vec = [N // num_procs 
                 if j != num_procs - 1 
                 else N - ((num_procs - 1)*(N // num_procs)) 
                 for j in range(num_procs)]
         
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, target_index, target_value, q_table) 
                           for N_vec_j in N_vec]
             
         with multiprocessing.Pool(processes = num_procs) as pool:

@@ -11,3 +11,4 @@ def is_target(var_values, target_index, target_value):
     if var_values[target_index] == target_value:
         return True
     return False
+

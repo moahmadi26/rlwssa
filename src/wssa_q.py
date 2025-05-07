@@ -2,7 +2,7 @@ import math
 import random
 from prism_parser import parser
 from utils import get_reaction_rate, is_target
-from reward import reward
+from reward import shape_reward
 from suppress import suppress_c_output
 
 def get_propensities(model, state):
@@ -12,7 +12,7 @@ def get_propensities(model, state):
     a_0 = sum(a)
     return a, a_0
 
-def get_bias(model, q_table, state, temperature):
+def softmax(model, q_table, state, temperature = 1.0):
     a, a_0 = get_propensities(model, state)
     q_values = []
     
@@ -22,45 +22,21 @@ def get_bias(model, q_table, state, temperature):
         else:
             q_values.append(0.0)
     
-    # q_max = max(q_values)
-    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    q_max = max(q_values)
+    q_values = [q_values[i] - q_max for i in range(len(q_values))]
     
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
     return [e/sum_exp_q for e in exp_q]
 
-def get_bias_train(model, q_table, state, temperature, epsilon):
-    a, a_0 = get_propensities(model, state)
-    nz_indices = [] 
-    for i in range(len(a)):
-        if a[i] > 0: nz_indices.append(i)
-    r = random.random()
-    if r < epsilon:
-        index = random.choice(nz_indices)
-        return [1.0 if i == index else 0.0 for i in range(len(a))]
-    
-    q_values = []
-    for action in range(len(a)):
-        if (state, action) in q_table.keys():
-            q_values.append(q_table[(state, action)])
-        else:
-            q_values.append(0.0)
-    
-    # q_max = max(q_values)
-    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
-    
-    exp_q = [math.exp(qv / temperature) for qv in q_values]
-    sum_exp_q = sum(exp_q)
-    return [e/sum_exp_q for e in exp_q]
-
-def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
-                  , target_value, epsilon, max_distance_reward, q_table):
+def wssa_q_train (model_path, N, t_max, target_index, target_value, q_table, temperature):
     with suppress_c_output():
         model = parser(model_path)
-    sum_reward = 0
+    
     count_observed_reactions = 0
     sum_biasings = [0.0] * len(model.get_reactions_vector())
     trajectories = [None] * N
+    sum_reward = 0
 
     for i in range(N):
         curr_traj = [] 
@@ -72,8 +48,7 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
         a, a_0 = get_propensities(model, x)
         
         # Q-table values to bias value
-        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-        bias = get_bias_train(model, q_table, x, temperature, epsilon)
+        bias = softmax(model, q_table, x, temperature)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
 
@@ -106,13 +81,12 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
             x_prev = x
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
             done = True if t >= t_max else False
-            r = reward(model, x_prev, x, target_index, target_value, w, max_distance_reward, done)
+            r = shape_reward(x_prev, x, target_index, target_value)
             sum_reward += r
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
-            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-            bias = get_bias_train(model, q_table, x, temperature, epsilon) 
+            bias = softmax(model, q_table, x, temperature) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
@@ -123,11 +97,11 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
         if flag:
             trajectories[i] = (curr_traj, w, True)
         else:
-            trajectories[i] = (curr_traj, 0, False)
+            trajectories[i] = (curr_traj, w, False)
     
     return trajectories, sum_biasings, count_observed_reactions, sum_reward 
 
-def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value, q_table):
+def wssa_q (model_path, N, t_max, target_index, target_value, q_table):
     with suppress_c_output():
         model = parser(model_path)
 
@@ -142,8 +116,7 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
         a, a_0 = get_propensities(model, x)
         
         # Q-table values to bias value
-        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-        bias = get_bias(model, q_table, x, temperature)
+        bias = softmax(model, q_table, x)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
 
@@ -171,8 +144,7 @@ def wssa_q (model_path, N, t_max, min_temp, max_temp, target_index, target_value
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
-            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
-            bias = get_bias(model, q_table, x, temperature) 
+            bias = softmax(model, q_table, x) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
 
