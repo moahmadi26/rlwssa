@@ -2,7 +2,8 @@ from utils import is_target
 import math
 
 def update_q_table(model, trajectories, q_table, learning_rate
-                   , discount_factor, target_index, target_value):
+                   , discount_factor, target_index, target_value
+                   , q_values_range, max_q_table_size):
     """
     Perform a Monte Carlo update on each stored trajectory in trajectories 
 
@@ -38,13 +39,12 @@ def update_q_table(model, trajectories, q_table, learning_rate
             # target = G, so:
             new_q = old_q + learning_rate * (G - old_q)
             
+            if new_q > q_values_range[1]:
+                new_q = q_values_range[1]
+            elif new_q < q_values_range[0]:
+                new_q = q_values_range[0]
+
             q_table[(state, action)] = new_q
     
     return q_table, sum_reward, sum_distance/len(trajectories) 
 
-def stopping_criteria(curr_reward, past_rewards, window_size, min_delta):
-    mean_reward = sum(past_rewards) / len(past_rewards)
-    delta = curr_reward - mean_reward
-#     if delta / curr_reward < min_delta:
-#         return true, [curr_reward if i == 0 else past_reward[i-1] for 
-    

@@ -12,19 +12,21 @@ import csv
 
 def main(json_path):
     #############################################################################################
-    num_procs = 15                   # number of processors used for parallel execution
+    num_procs = 15                     # number of processors used for parallel execution
 
     # Hyperparameters
-    batch_size = 1000                 # the number of trajectories simulated before q-table is updated
-    N = 10_000_000                       # number of trajectories used in each ensemble 
-    min_temp = 0.5                   # minimum softmax temperature
-    max_temp = 1.5                   # maximum softmax temperature
-    learning_rate = 0.10              # learning rate
-    learning_rate_decay_rate = 1.0  # learning rate decay rate
-    discount_factor = 0.9            # discount factor
+    batch_size = 1000                  # the number of trajectories simulated before q-table is updated
+    N = 10_000_000                     # number of trajectories used in each ensemble 
+    min_temp = 0.5                     # minimum softmax temperature
+    max_temp = 1.5                     # maximum softmax temperature
+    learning_rate = 0.10               # learning rate
+    learning_rate_decay_rate = 0.9999  # learning rate decay rate
+    discount_factor = 0.9              # discount factor
+    q_values_range = [-150, 150]
+    max_q_table_size = 2_000_000
     #############################################################################################
    
-    csv_file = open("enzym.csv", "w", newline = "")
+    csv_file = open("single_species.csv", "w", newline = "")
     writer = csv.writer(csv_file)
 
     with open(json_path, 'r') as f:
@@ -73,7 +75,8 @@ def main(json_path):
 
         q_table, sum_reward, average_distance = update_q_table(model, trajectories, q_table
                                                                , learning_rate, discount_factor
-                                                               , target_index, target_value) 
+                                                               , target_index, target_value
+                                                               ,q_values_range, max_q_table_size) 
         simulated_trajectories += batch_size
         batch_number += 1
         

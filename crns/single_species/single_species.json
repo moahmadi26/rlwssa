@@ -1,0 +1,8 @@
+{
+	"model_path" : "../crns/single_species/single_species.sm",
+	"model_name" : "single_species",
+	"csl_property" : "P=? [true U<=100 (s2=80)]",
+	"target_variable" : "s2",
+	"target_value" : "80",
+	"max_time" : "100"
+}

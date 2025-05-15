@@ -22,11 +22,9 @@ def get_bias(model, q_table, state, temperature):
         else:
             q_values.append(0.0)
     
-    q_max = max(q_values)
-    q_values = [q_values[i] - q_max for i in range(len(q_values))]
-    
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
+    
     return [e/sum_exp_q for e in exp_q]
 
 def wssa_q(model_path, N, t_max, min_temp, max_temp, target_index
@@ -53,7 +51,7 @@ def wssa_q(model_path, N, t_max, min_temp, max_temp, target_index
         a, a_0 = get_propensities(model, x)
         
         # Q-table values to bias value
-        temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
+        temperature = min_temp + max(((max_temp-min_temp)* ((t_max - t)/t_max)), 0 )
         bias = get_bias(model, q_table, x, temperature)
         b = [a[i] * bias[i] for i in range(len(a))]
         b_0 = sum(b)
@@ -93,7 +91,7 @@ def wssa_q(model_path, N, t_max, min_temp, max_temp, target_index
             a, a_0 = get_propensities(model, x)
         
             # Q-table values to bias value
-            temperature = min_temp + ((max_temp-min_temp)* ((t_max - t)/t_max))
+            temperature = min_temp + max(((max_temp-min_temp)* ((t_max - t)/t_max)), 0)
             bias = get_bias(model, q_table, x, temperature) 
             b = [a[i] * bias[i] for i in range(len(a))]
             b_0 = sum(b)
