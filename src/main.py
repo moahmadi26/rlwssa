@@ -2,22 +2,21 @@ import sys
 import json
 import time
 import multiprocessing
-from dwssa_q import dwssa_q_train, dwssa_q
+from dwssa import dwssa_train, dwssa
 from prism_parser import parser
 import numpy as np
+from utils import suppress_c_output
+from biasing import find_biasing
 
 def main(json_path):
     #############################################################################################
-    num_procs = 4       # number of processors used for parallel execution
+    num_procs = 16       # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 10_000     # total number of trajectories used to learn the q-table
-    batch_size = 1000    # the number of trajectories simulated before q-table is updated
-    rho = 0.05           # the percentage of trajectories from a batch selected as the current event
-    min_temp = 1         # minimum softmax temperature
-    max_temp = 1         # maximum softmax temperature
+    N_train = 100_000     # total number of trajectories used to learn the q-table
+    rho = 0.005           # the percentage of trajectories from a batch selected as the current event
     K = 4                # K ensebles of size N are used to estimate the probability of event
-    N = 100_000          # number of trajectories used in each ensemble 
+    N = 10_000_000          # number of trajectories used in each ensemble 
     #############################################################################################
    
     with open(json_path, 'r') as f:
@@ -27,31 +26,44 @@ def main(json_path):
     target_var = json_data['target_variable']
     target_value = int(json_data['target_value'])
     t_max = float(json_data['max_time'])
-    model = parser(model_path)
+    with suppress_c_output():
+        model = parser(model_path) 
     target_index = model.species_to_index_dict[target_var]
     
-    # Q-table is stored as a dictionary : (state, action) -> Q-value
-    q_table = {}
-    
-    simulated_trajectories = 0
     start_time = time.time()
-    
-    while(simulated_trajectories <= N_train):
-        N_vec = [batch_size // num_procs 
-            if j != num_procs - 1 
-            else N - ((num_procs - 1)*(bath_size // num_procs)) 
-            for j in range(num_procs)]
-        
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
-                 for N_vec_j in N_vec]
-        
-        with multiprocessing.Pool(processes = num_procs) as pool:
-            results = pool.starmap(dwssa_q_train, tasks)
-        
-        simulated_trajectories += batch_size
+    biasing_vector_inner = [1.0] * len(model.get_reactions_vector())
+    biasing_vector = [1.0] * len(model.get_reactions_vector()) 
 
+    iteration = 0
+    flag = True
+    while(flag):
+        flag = True
+        event = set()
+        for i in range(K):
+            N_vec = [N_train // num_procs 
+                if j != num_procs - 1 
+                else N_train - ((num_procs - 1)*(N_train // num_procs)) 
+                for j in range(num_procs)]
+            
+            tasks = [(model_path, N_vec_j, t_max, target_index, target_value, biasing_vector_inner) 
+                     for N_vec_j in N_vec]
+            
+            with multiprocessing.Pool(processes = num_procs) as pool:
+                results = pool.starmap(dwssa_train, tasks)
+            
+            trajectories = [trajectory for result in results for trajectory in result]
+            
+            flag_inner, biasing_vector_inner = find_biasing(model, trajectories, rho, len(biasing_vector))
+            
+            flag = flag and flag_inner
+            biasing_vector = [biasing_vector[j] + biasing_vector_inner[j]
+                              for j in range(len(biasing_vector))]
+        iteration += 1
+        print(f"Iteration {iteration}")
+        print(f"biaisng vector = {biasing_vector_inner}")
+        biasing_vector = [biasing_vector[j]/ K for j in range(len(biasing_vector))]
     
-    print(f"Learning phase finished. {N_train} trajectories were simulated.")
+    print(f"Learning phase finished. {K * N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
     print("Running the dwSSA with the learned q_table...")
 
@@ -60,13 +72,13 @@ def main(json_path):
     p_vector = [None] * K
 
     # run K ensembles of size N. Keep the probablity estimates in a vector
-    for in in range(K):
+    for i in range(K):
         N_vec = [N // num_procs 
                 if j != num_procs - 1 
                 else N - ((num_procs - 1)*(N // num_procs)) 
                 for j in range(num_procs)]
 
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
+        tasks = [(model_path, N_vec_j, t_max, target_index, target_value, biasing_vector) 
                           for N_vec_j in N_vec]
             
         with multiprocessing.Pool(processes = num_procs) as pool:
@@ -78,7 +90,7 @@ def main(json_path):
 
         p_vector[i] = m_1 / N
     
-    p_hat = sum(p_vector)
+    p_hat = sum(p_vector) / K
     s_2 = [(p_vector[i] - p_hat)**2 for i in range(len(p_vector))]
     s_2 = sum(s_2) / (K-1)
     error = math.sqrt(s_2) / math.sqrt(K)
