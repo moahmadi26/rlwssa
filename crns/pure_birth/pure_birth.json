@@ -1,0 +1,8 @@
+{
+	"model_path" : "../crns/pure_birth/pure_birth.sm",
+	"model_name" : "pure_birth",
+	"csl_property" : "P=? [true U<=50 (s=75)]",
+	"target_variable" : "s",
+	"target_value" : "75",
+	"max_time" : "50"
+}

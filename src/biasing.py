@@ -1,29 +1,35 @@
 from utils import get_reaction_rate
 import math
 
-def find_biasing(model, trajectories, rho, num_reactions):
+def find_biasing(model, trajectories, rho, num_reactions, target_index, target_value):
     trajectories.sort(key = lambda inner : inner[2])
     threshold = math.ceil(rho * len(trajectories))
     trajectories = trajectories[:threshold]
+    rare_event_threshold = 0
+    for trajectory in trajectories:
+        if trajectory[2] > rare_event_threshold:
+            rare_event_threshold = trajectory[2]
+    sign = -1
+    if target_value - model.get_initial_state()[target_index] < 0:
+        sign = 1
+    print(f"rare event threshold : {target_value + sign*rare_event_threshold}")
 
     count_reactions = [0] * num_reactions
     expected_count_reactions = [0.0] * num_reactions
     weighted_sum_dwssa = [0.0] * num_reactions
     weighted_sum_ssa = [0.0] * num_reactions
 
-    flag = True
+    flag = False 
     for trajectory in trajectories:
         curr_traj = trajectory[0]
         if trajectory[2] != 0:
-            flag = False
+            flag = True 
         
         for i in range(len(curr_traj)-1):
             if i%3 == 0:
                state = curr_traj[i] 
-               # if state == curr_traj[3]:
+               # if state[target_index] == rare_event_threshold:
                #     break
-               # else:
-               #     print("here")
             if i%3 == 1:
                reaction = curr_traj[i]
                count_reactions[reaction] +=1 

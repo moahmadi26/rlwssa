@@ -28,7 +28,7 @@ def dwssa_train (model_path, N, t_max, target_index, target_value, biasing_vecto
 
         a, a_0 = get_propensities(model, x)
         
-        b = [a[i] * biasing_vector[i] for i in range(len(a))]
+        b = [a[j] * biasing_vector[j] for j in range(len(a))]
         b_0 = sum(b)
 
         while (t < t_max):
@@ -54,7 +54,7 @@ def dwssa_train (model_path, N, t_max, target_index, target_value, biasing_vecto
             reaction_updates = model.get_reactions_vector()[mu]
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
             if abs(x[target_index] - target_value) < min_dist:
-                min_dist = x[target_index] - target_value
+                min_dist = abs(x[target_index] - target_value)
                 min_dist_state = x
             a, a_0 = get_propensities(model, x)
         
@@ -63,6 +63,7 @@ def dwssa_train (model_path, N, t_max, target_index, target_value, biasing_vecto
 
             curr_traj.append(x)
         
+        min_dist = abs(x[target_index] - target_value)
         trajectories[i] = (curr_traj, w, min_dist, min_dist_state)
     return trajectories
 
@@ -70,15 +71,16 @@ def dwssa (model_path, N, t_max, target_index, target_value, biasing_vector):
     with suppress_c_output():
         model = parser(model_path)
 
+    m_1 = 0
+    
     for i in range(N):
         x = model.get_initial_state()
         t = 0
         w = 1
-        m_1 = 0
 
         a, a_0 = get_propensities(model, x)
         
-        b = [a[i] * biasing_vector[i] for i in range(len(a))]
+        b = [a[j] * biasing_vector[j] for j in range(len(a))]
         b_0 = sum(b)
 
         while (t < t_max):
@@ -89,7 +91,7 @@ def dwssa (model_path, N, t_max, target_index, target_value, biasing_vector):
             r1 = random.random()
             r2 = random.random()
             tau = (1.0 / b_0) * math.log(1.0 / r1)
-           
+
             temp_sum = 0
             mu = 0
             while temp_sum <= r2*b_0:
@@ -98,6 +100,7 @@ def dwssa (model_path, N, t_max, target_index, target_value, biasing_vector):
             mu -= 1
             
             w = w * (1.0 / biasing_vector[mu]) * math.exp((b_0 - a_0) * tau)
+
             t += tau
             reaction_updates = model.get_reactions_vector()[mu]
             x = tuple(x[i] + reaction_updates[i] for i in range(len(x)))
