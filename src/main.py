@@ -14,10 +14,10 @@ def main(json_path):
     num_procs = 16       # number of processors used for parallel execution
 
     # Hyperparameters
-    N_train = 10_000     # total number of trajectories used to learn the q-table
+    N_train = 100_000     # total number of trajectories used to learn the q-table
     rho = 0.01           # the percentage of trajectories from a batch selected as the current event
     K = 4                # K ensebles of size N are used to estimate the probability of event
-    N = 100_000          # number of trajectories used in each ensemble 
+    N = 10_000_000          # number of trajectories used in each ensemble 
     #############################################################################################
    
     with open(json_path, 'r') as f:
