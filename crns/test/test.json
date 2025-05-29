@@ -1,0 +1,7 @@
+{
+	"model_path" : "../crns/test/test.sm",
+	"model_name" : "test",
+	"target_variable" : "s2",
+	"target_value" : "2",
+	"max_time" : "1"
+}

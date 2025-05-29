@@ -22,8 +22,8 @@ def get_bias(model, q_table, state, temperature):
         else:
             q_values.append(0.0)
     
-    # q_max = max(q_values)
-    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    q_max = max(q_values)
+    q_values = [q_values[i] - q_max for i in range(len(q_values))]
     
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
@@ -46,8 +46,8 @@ def get_bias_train(model, q_table, state, temperature, epsilon):
         else:
             q_values.append(0.0)
     
-    # q_max = max(q_values)
-    # q_values = [q_values[i] - q_max for i in range(len(q_values))]
+    q_max = max(q_values)
+    q_values = [q_values[i] - q_max for i in range(len(q_values))]
     
     exp_q = [math.exp(qv / temperature) for qv in q_values]
     sum_exp_q = sum(exp_q)
@@ -101,6 +101,8 @@ def wssa_q_train (model_path, N, t_max, min_temp, max_temp, target_index
 
 
             w = w * (a[mu] / b[mu]) * (b_0 / a_0)
+            curr_traj.append((a[mu] / b[mu]) * (b_0 / a_0))
+
             t += tau
             reaction_updates = model.get_reactions_vector()[mu]
             x_prev = x

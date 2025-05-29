@@ -70,7 +70,7 @@ def main(json_path):
         batch_number += 1
         
         print(f"learning_rate = {learning_rate}")
-        learning_rate = max(learning_rate*0.99, 0.0001) 
+        # learning_rate = max(learning_rate*0.99, 0.0001) 
         
         print(f"batch: {batch_number}")
         print(f"average terminal state distance : {average_distance}")

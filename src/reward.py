@@ -23,7 +23,7 @@ def reward(model, prev_state, curr_state, target_index, target_value, weight, ma
     else:
         dist_reward = prev_dist - curr_dist
     
-    if not(is_target(curr_state, target_index, target_value)):
+    if True or not(is_target(curr_state, target_index, target_value)):
         return dist_reward
     return dist_reward + math.exp(weight)
 

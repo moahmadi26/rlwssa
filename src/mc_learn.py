@@ -21,17 +21,22 @@ def update_q_table(model, trajectories, q_table, learning_rate
 
         # We'll accumulate G from the end.
         G = 0.0
+        curr_weight = 1.0
         
         # Walk backward from the final time step and update the Q-table
-        start = len(episode) - 5
+        start = len(episode) - 6
 
-        for i in (range(start, -1, -4)):
-            state, action, reward = episode[i], episode[i+1], episode[i+3]
+        for i in (range(start, -1, -5)):
+            state, action, weight, reward = episode[i], episode[i+1], episode[i+3], episode[i+4]
+            curr_weight = curr_weight * weight
            
             sum_reward += reward
             
-            G = discount_factor * G + reward  # accumulate discounted return
-
+            if element[2]:
+                G = discount_factor * G + reward + math.exp(curr_weight) # accumulate discounted return
+            else:
+                G = discount_factor * G + reward #+ math.exp(curr_weight) # accumulate discounted return
+            
 
             # Now do the incremental MC update
             old_q = q_table.get((state, action), 0.0)
