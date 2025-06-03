@@ -1,35 +1,24 @@
 import sys
 import json
 import time
-import multiprocessing
-from wssa_q import wssa_q_train, wssa_q
-from mc_learn import update_q_table
 from prism_parser import parser
-import numpy as np
 import math
 from suppress import suppress_c_output
 import yaml
+import csv
+from reinforce import train_reinforce, evaluate_reinforce
 
 def main(json_path):
-    #############################################################################################
-    num_procs = 15              # number of processors used for parallel execution
-
-    # Hyperparameters
-    N_train = 10_000           # total number of trajectories used to learn the q-table
-    batch_size = 100           # the number of trajectories simulated before q-table is updated
-    min_temp = 1.0              # minimum softmax temperature
-    max_temp = 1.0              # maximum softmax temperature
-    K = 4                       # K ensebles of size N are used to estimate the probability of event
-    N = 10_000                  # number of trajectories used in each ensemble 
-    epsilon = 0.0005            # epsilon value in epsilon greedy
-    learning_rate = 0.1        # learning rate
-    discount_factor = 1.0       # discount factor
-    distance_multiplier = 1.0   # the multiplier in the distance term of the reward
-    max_distance_reward = 20.0  # the maximum distance reward given to a trajectory
-    #############################################################################################
-   
+    # Configuration
+    num_procs = 15              # number of processors
+    N_train = 20_000           # training episodes
+    batch_size = 100           # batch size for policy updates
+    N = 50_000                 # total evaluation episodes
+    
     results_file = open("results.txt", "w")
-
+    csv_filename = "./results/single_species.csv"
+    
+    # Load configuration
     with open(json_path, 'r') as f:
         json_data = json.load(f)
 
@@ -38,102 +27,129 @@ def main(json_path):
     target_value = int(json_data['target_value'])
     t_max = float(json_data['max_time'])
     
+    print(f"Target: {target_var} >= {target_value}")
+    print(f"Time limit: {t_max}")
+    print("=" * 50)
+    
+    # Parse model
     with suppress_c_output():
         model = parser(model_path)
     target_index = model.species_to_index_dict[target_var]
+    initial_state = model.get_initial_state()
     
-    # Q-table is stored as a dictionary : (state, action) -> Q-value
-    q_table = {}
-    
-    simulated_trajectories = 0
-    batch_number = 0
+    # Training phase
     start_time = time.time()
+    print(f"Training REINFORCE agent with {N_train} episodes...")
     
-    while(simulated_trajectories < N_train):
-        N_vec = [batch_size // num_procs 
-            if j != num_procs - 1 
-            else batch_size - ((num_procs - 1)*(batch_size // num_procs)) 
-            for j in range(num_procs)]
-        
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index
-                  , target_value, epsilon, max_distance_reward, q_table) 
-                 for N_vec_j in N_vec]
-       
-        with multiprocessing.Pool(processes = num_procs) as pool:
-            results = pool.starmap(wssa_q_train, tasks)
-
-        trajectories = [item for sublist in results for item in sublist[0]] 
-        q_table, sum_reward, average_distance = update_q_table(model, trajectories, q_table
-                                                               , learning_rate, discount_factor
-                                                               , distance_multiplier, target_index, target_value) 
-        simulated_trajectories += batch_size
-        batch_number += 1
-        
-        print(f"learning_rate = {learning_rate}")
-        # learning_rate = max(learning_rate*0.99, 0.0001) 
-        
-        print(f"batch: {batch_number}")
-        print(f"average terminal state distance : {average_distance}")
-        print(f"sum rewards : {sum_reward}")
-        print("-" * 50)
-
+    theta, state_visits, success_rates = train_reinforce(
+        model=model,
+        initial_state=initial_state,
+        n_episodes=N_train,
+        target_sp=target_index,
+        target=target_value,
+        T=t_max,
+        batch_size=batch_size,  # Add this parameter
+        n_workers=num_procs
+    )
+    
     print("=" * 50)
-    print(f"Learning phase finished. {N_train} trajectories were simulated.")
-    print(f"Time spent learning: {time.time() - start_time} seconds.") 
-    print(f"Length of q-table = {len(q_table)}")
-    print("Running the wSSA_q with the learned q_table...")
-    results_file.write(f"Learning phase finished. {N_train} trajectories were simulated.\n"
-                       f"Time spent learning: {time.time() - start_time} seconds. \n"
-                       f"Length of q-table = {len(q_table)}"
-                       f"Running the wSSA_q with the learned q_table... \n"
-                          )
+    print(f"Training finished. {N_train} episodes simulated.")
+    print(f"Time spent training: {time.time() - start_time:.2f} seconds.")
+    print(f"Final success rate: {success_rates[-1]:.3f}")
     
-    with open('q_table.yaml', 'w') as f:
-        yaml.dump(q_table, f)
-
+    # Save policy
+    policy_params = {k: v.tolist() for k, v in theta.items()}
+    with open('reinforce_policy.yaml', 'w') as f:
+        yaml.dump(policy_params, f)
+    
+    results_file.write(f"Training finished. {N_train} episodes simulated.\n"
+                      f"Time spent training: {time.time() - start_time:.2f} seconds.\n"
+                      f"Final success rate: {success_rates[-1]:.3f}\n")
+    
+    # Evaluation phase
+    print("Evaluating agent...")
     start_time = time.time()
-
-    p_vector = [None] * K
-    count = [None] * K
-
-    # run K ensembles of size N. Keep the probablity estimates in a vector
-    for i in range(K):
-        N_vec = [N // num_procs 
-                if j != num_procs - 1 
-                else N - ((num_procs - 1)*(N // num_procs)) 
-                for j in range(num_procs)]
-        
-        tasks = [(model_path, N_vec_j, t_max, min_temp, max_temp, target_index, target_value, q_table) 
-                          for N_vec_j in N_vec]
-            
-        with multiprocessing.Pool(processes = num_procs) as pool:
-                results = pool.starmap(wssa_q, tasks)
-        
-        m_1 = 0.0
-        count_ = 0
-        for result in results:
-            m_1 += result[0]
-            count_ += result[1]
-        
-        count[i] = count_ 
-
-        p_vector[i] = m_1 / N
     
-    p_hat = sum(p_vector)
-    p_hat = p_hat / K
-    s_2 = [(p_vector[i] - p_hat)**2 for i in range(K)]
-    s_2 = sum(s_2) / (K-1)
-    error = math.sqrt(s_2) / math.sqrt(K)
+    # Run N simulations and collect statistics every 1000 simulations
+    total_N = N  # Total simulations to run
+    checkpoint_interval = 1000
+    
+    # Initialize CSV file for statistics
+    with open(csv_filename, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(["simulations", "probability_estimate", "variance", "error"])
+        
+        all_weights = []
+        
+        print("Running evaluation with checkpoints every 1000 simulations...")
+        
+        # Run simulations in chunks
+        for checkpoint in range(checkpoint_interval, total_N + 1, checkpoint_interval):
+            # Determine how many more simulations we need
+            simulations_needed = checkpoint - len(all_weights)
+            
+            if simulations_needed > 0:
+                prob_estimate, weights = evaluate_reinforce(
+                    theta=theta,
+                    state_visits=state_visits,
+                    model=model,
+                    initial_state=initial_state,
+                    n_episodes=simulations_needed,
+                    target_sp=target_index,
+                    target=target_value,
+                    T=t_max,
+                    n_workers=num_procs
+                )
+                all_weights.extend(weights)
+            
+            # Calculate statistics for current checkpoint
+            n_sims = len(all_weights)
+            
+            # Probability estimate = sum of weights / number of simulations
+            prob_est = sum(all_weights) / n_sims
+            
+            # Variance = E[X²] - (E[X])²
+            # Where X is the weight, E[X] = prob_est, E[X²] = sum(weights²) / n_sims
+            sum_weights_squared = sum(w**2 for w in all_weights)
+            second_moment = sum_weights_squared / n_sims
+            variance = second_moment - prob_est**2
+            
+            # Error = sqrt(variance / n_sims)
+            error = math.sqrt(variance / n_sims) if variance > 0 else 0.0
+            
+            # Print to console
+            print(f"Checkpoint {n_sims}: Prob={prob_est:.3E}, Var={variance:.3E}, Error={error:.3E}")
+            
+            # Write to CSV with scientific notation
+            csv_writer.writerow([n_sims, f"{prob_est:.6E}", f"{variance:.6E}", f"{error:.6E}"])
+            csvfile.flush()  # Ensure data is written immediately
+    
+    eval_time = time.time() - start_time
+    final_prob_estimate = sum(all_weights) / len(all_weights)
+    final_variance = (sum(w**2 for w in all_weights) / len(all_weights)) - final_prob_estimate**2
+    final_error = math.sqrt(final_variance / len(all_weights)) if final_variance > 0 else 0.0
+    
+    print(f"\nEvaluation finished. {len(all_weights)} episodes simulated in {eval_time:.2f} seconds.")
+    print(f"Final probability estimate = {final_prob_estimate:.6E}")
+    print(f"Final variance = {final_variance:.6E}")
+    print(f"Final standard error = {final_error:.6E}")
+    print(f"Statistics saved to {csv_filename}")
+    
+    results_file.write(f"Evaluation: {len(all_weights)} episodes in {eval_time:.2f} seconds.\n"
+                      f"Final probability estimate = {final_prob_estimate:.6E}\n"
+                      f"Final standard error = {final_error:.6E}\n"
+                      f"Statistics saved to {csv_filename}\n")
+    
+    # Count successful trajectories
+    success_count = sum(1 for w in all_weights if w > 0)
+    print(f"Total successful trajectories: {success_count}")
+    
+    results_file.close()
 
-    print(f"simulating {K * N} trajectories took {time.time() - start_time} seconds.") 
-    print(f"probability estimate = {p_hat}")
-    print(f"standard error = {error}")
-    results_file.write(f"simulating {K * N} trajectories took {time.time() - start_time} seconds. \n"
-                       f"probability estimate = {p_hat} \n"
-                       f"standard error = {error}"
-                       )
-    print(p_vector)
-    print(count)
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <json_config_path>")
+        sys.exit(1)
+    
     config_path = sys.argv[1]
     main(config_path)

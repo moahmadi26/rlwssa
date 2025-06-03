@@ -5,5 +5,6 @@
 	"csl_property" : "P=? [true U<=10 (CodY=20)]",
 	"target_variable" : "CodY",
 	"target_value" : "20",
-	"max_time" : "10"
+	"max_time" : "10",
+    "algorithm" : "reinforce_combined"
 }

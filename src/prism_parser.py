@@ -19,6 +19,7 @@ class DummyStream:
 
 class parser:
     def __init__(self, model_path):
+        self.model_path = model_path  # Store model path
         # Retrieving the variables (species) in the model
         prism_program = stormpy.parse_prism_program(path=model_path, prism_compat=True)
         self.initial_state_tuple = tuple()

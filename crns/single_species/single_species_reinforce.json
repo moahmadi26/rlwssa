@@ -5,6 +5,5 @@
 	"target_variable" : "s2",
 	"target_value" : "80",
 	"max_time" : "100",
-    "algorithm" : "reinforce_combined"
-
+	"algorithm" : "reinforce_combined"
 }
