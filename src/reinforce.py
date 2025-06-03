@@ -6,7 +6,7 @@ from prism_parser import parser
 from suppress import suppress_c_output
 from tqdm import tqdm
 
-WEIGHT_IMPORTANCE = 4.0  # Increase weight effect 3x
+WEIGHT_IMPORTANCE = 5.0  # Increase weight effect 3x
 PROGRESS_IMPORTANCE = 0.5  # Reduce progress effect by half
 
 # Global variables for worker processes
@@ -83,7 +83,7 @@ def get_state(x, t, tf, target_idx, target_value):
 def run_episode(args):
     """Run a single wSSA REINFORCE episode"""
     (initial_state, target_idx, target, target_value, T, 
-     policy_params, state_visits, initial_value, episode_idx) = args
+     policy_params, state_visits, initial_value, training, episode_idx) = args
     
     t = 0
     x = np.array(initial_state)
@@ -106,10 +106,15 @@ def run_episode(args):
         
         # Get policy weights
         log_gammas = policy_params.get(state, np.zeros(_n_reactions))
-        visit_count = state_visits.get(state, 0)
-        exploration_std = 0.5 / (1 + 0.01 * visit_count)
-        noise = np.random.normal(0, exploration_std, _n_reactions)
-        log_gammas = np.clip(log_gammas + noise, -2, 2)
+        
+        if training:
+            # Add exploration noise only during training
+            visit_count = state_visits.get(state, 0)
+            exploration_std = 0.5 / (1 + 0.01 * visit_count)
+            noise = np.random.normal(0, exploration_std, _n_reactions)
+            log_gammas = log_gammas + noise
+        
+        log_gammas = np.clip(log_gammas, -2, 2)
         gamma_values = np.exp(log_gammas)
         
         # Calculate propensities
@@ -189,7 +194,7 @@ def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batc
             
             args_list = [
                 (initial_state, target_sp, target, target, T, 
-                 policy_params, visits, initial_value, i)
+                 policy_params, visits, initial_value, True, i)  # True = training
                 for i in range(batch_size)
             ]
             
@@ -248,7 +253,7 @@ def evaluate_reinforce(theta, state_visits, model, initial_state, n_episodes, ta
     
     args_list = [
         (initial_state, target_sp, target, target, T, 
-         policy_params, visits, initial_value, i)
+         policy_params, visits, initial_value, False, i)  # False = evaluation
         for i in range(n_episodes)
     ]
     

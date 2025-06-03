@@ -11,12 +11,12 @@ from reinforce import train_reinforce, evaluate_reinforce
 def main(json_path):
     # Configuration
     num_procs = 15              # number of processors
-    N_train = 20_000           # training episodes
-    batch_size = 100           # batch size for policy updates
-    N = 50_000                 # total evaluation episodes
+    N_train = 100_000           # training episodes
+    batch_size = 500           # batch size for policy updates
+    N = 1_000_000                 # total evaluation episodes
     
-    results_file = open("results.txt", "w")
-    csv_filename = "./results/single_species.csv"
+    results_file = open("./results/circuit.txt", "w")
+    csv_filename = "./results/circuit.csv"
     
     # Load configuration
     with open(json_path, 'r') as f:
