@@ -7,7 +7,7 @@ from suppress import suppress_c_output
 from tqdm import tqdm
 
 WEIGHT_IMPORTANCE = 5.0  # Increase weight effect 3x
-PROGRESS_IMPORTANCE = 0.5  # Reduce progress effect by half
+PROGRESS_IMPORTANCE = 1.0  # Reduce progress effect by half
 
 # Global variables for worker processes
 _model = None
@@ -53,24 +53,25 @@ def calculate_reward(trajectory, reached_target, target_idx, target_threshold, i
         progress = (initial_value - min(populations)) / max(1, initial_value - target_threshold)
     
     progress = max(0, min(1, progress))
-    progress_reward = 40.0 * progress * PROGRESS_IMPORTANCE
+    progress_reward = 50.0 * progress * PROGRESS_IMPORTANCE
     
     # Weight penalty
     log_w = 0
     for step in trajectory:
-        if 'a' in step and 'b' in step:
-            log_w += (np.log(step['a'][step['reaction']] + 1e-10) - 
-                     np.log(step['b'][step['reaction']] + 1e-10) + 
-                     (step['b0'] - step['a0']) * step['tau'])
-    
-    weight_penalty = -min(abs(log_w) / 10.0, 10.0) * WEIGHT_IMPORTANCE
-    
+        if 'weight' in step:
+            # If we stored the weight directly
+            log_w += np.log(step['weight'] + 1e-10) 
+    if reached_target:
+        weight_penalty = -min(abs(log_w) / 10.0, 10.0) * WEIGHT_IMPORTANCE
+    else:
+        weight_penalty = 0
+
     # Success bonus
     success_bonus = 0
     if reached_target:
         path_length = len(trajectory)
         efficiency = 100.0 / (1 + path_length / 10)
-        success_bonus = 100.0 + efficiency
+        success_bonus = 100.0 #+ efficiency
     
     return progress_reward + weight_penalty + success_bonus
 
@@ -136,14 +137,13 @@ def run_episode(args):
         w *= (a[j] / b[j]) * (b0 / a0)
         
         # Calculate gradients for wSSA
-        # For wSSA: log P(trajectory) = log(a0) - a0*tau + log(b_j/b0)
+        # For wSSA: log P(trajectory) = log(a0) - a0*tau + log(b_j/b0) (only b_j, b0 depend on theta)
         # Gradient w.r.t. log(gamma_k):
-        # ∂log(b_j/b0)/∂log(gamma_k) = δ_jk - b_k/b0
         grad_log_pi = np.zeros(_n_reactions)
         grad_log_pi[j] = 1
         grad_log_pi -= reaction_probs
         
-        # No gradient from tau since it depends on a0, not b0 in wSSA
+        # No gradient from tau since it depends on a0
         grad_step = grad_log_pi
         
         trajectory.append({
@@ -156,7 +156,7 @@ def run_episode(args):
             'b': b,
             'a0': a0,
             'b0': b0,
-            'weight': w  # Store current weight
+            'weight': (a[j]/b[j])* (b0/a0)  # Store current weight
         })
         
         # Update state
@@ -218,7 +218,7 @@ def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batc
             
             # ADAM updates
             t_step += 1
-            lr = 0.01 * (0.999 ** (t_step // 10))
+            lr = 0.1 * (0.9 ** (t_step // 5))
             
             for state, grad in gradient_acc.items():
                 grad = grad / batch_size

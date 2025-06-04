@@ -15,8 +15,8 @@ def main(json_path):
     batch_size = 500           # batch size for policy updates
     N = 1_000_000                 # total evaluation episodes
     
-    results_file = open("./results/circuit.txt", "w")
-    csv_filename = "./results/circuit.csv"
+    results_file = open("./results/motil_updated.txt", "w")
+    csv_filename = "./results/motil_updated.csv"
     
     # Load configuration
     with open(json_path, 'r') as f:
