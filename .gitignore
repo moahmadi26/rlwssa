@@ -4,6 +4,7 @@ venv_address.sh
 results/
 results.txt
 *.yaml
+src/plot/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
