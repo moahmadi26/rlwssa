@@ -8,6 +8,9 @@ from tqdm import tqdm
 
 WEIGHT_IMPORTANCE = 5.0  # Increase weight effect 3x
 PROGRESS_IMPORTANCE = 1.0  # Reduce progress effect by half
+ENTROPY_WEIGHT = 0.01  # Entropy regularization to prevent too aggressive biasing
+MAX_LOG_GAMMA = 2.0  # Maximum log gamma value (gamma ~= 7.39)
+MIN_LOG_GAMMA = -2.0  # Minimum log gamma value (gamma ~= 0.135)
 
 # Global variables for worker processes
 _model = None
@@ -115,7 +118,7 @@ def run_episode(args):
             noise = np.random.normal(0, exploration_std, _n_reactions)
             log_gammas = log_gammas + noise
         
-        log_gammas = np.clip(log_gammas, -2, 2)
+        log_gammas = np.clip(log_gammas, MIN_LOG_GAMMA, MAX_LOG_GAMMA)
         gamma_values = np.exp(log_gammas)
         
         # Calculate propensities
@@ -146,6 +149,11 @@ def run_episode(args):
         # No gradient from tau since it depends on a0
         grad_step = grad_log_pi
         
+        # Add entropy regularization gradient during training
+        if training and ENTROPY_WEIGHT > 0:
+            entropy_grad = -reaction_probs * (np.log(reaction_probs + 1e-10) + 1)
+            grad_step += ENTROPY_WEIGHT * entropy_grad
+        
         trajectory.append({
             'state': state,
             'reaction': j,
@@ -167,8 +175,14 @@ def run_episode(args):
     reward = calculate_reward(trajectory, False, target_idx, target_value, initial_value)
     return False, trajectory, reward, w  # Return weight
 
-def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batch_size, n_workers=None):
-    """Train REINFORCE agent with wSSA"""
+def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batch_size, n_workers=None, 
+                   convergence_threshold=0.01, patience=10):
+    """Train REINFORCE agent with wSSA
+    
+    Args:
+        convergence_threshold: Stop if policy change is below this threshold
+        patience: Number of batches to wait for improvement
+    """
     if n_workers is None:
         n_workers = mp.cpu_count()
     
@@ -182,6 +196,10 @@ def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batc
     # Remove hardcoded batch_size - now passed as parameter
     n_batches = n_episodes // batch_size
     success_rates = []
+    policy_changes = []
+    best_avg_return = -float('inf')
+    no_improvement_count = 0
+    prev_theta = {}
     
     initial_value = initial_state[target_sp]
     model_path = model.model_path
@@ -234,15 +252,46 @@ def train_reinforce(model, initial_state, n_episodes, target_sp, target, T, batc
             # Track metrics
             batch_success_rate = sum(success for success, _, _, _ in trajectories) / batch_size
             success_rates.append(batch_success_rate)
+            avg_return = np.mean(returns)
+            
+            # Track policy change for convergence
+            if batch_idx > 0:
+                policy_change = sum(np.linalg.norm(theta[state] - prev_theta.get(state, np.zeros_like(theta[state]))) 
+                                  for state in theta) / len(theta)
+                policy_changes.append(policy_change)
+                
+                # Check for convergence
+                if policy_change < convergence_threshold:
+                    print(f"\nConverged at batch {batch_idx} (policy change: {policy_change:.6f})")
+                    break
+                    
+                # Check for improvement
+                if avg_return > best_avg_return:
+                    best_avg_return = avg_return
+                    no_improvement_count = 0
+                else:
+                    no_improvement_count += 1
+                    
+                if no_improvement_count >= patience:
+                    print(f"\nEarly stopping at batch {batch_idx} (no improvement for {patience} batches)")
+                    break
+            
+            # Store previous policy for comparison
+            prev_theta = {state: theta[state].copy() for state in theta}
             
             if batch_idx % 25 == 0:
-                avg_return = np.mean(returns)
                 print(f"Batch {batch_idx}: Success={batch_success_rate:.3f}, Return={avg_return:.2f}")
     
     return theta, state_visits, success_rates
 
-def evaluate_reinforce(theta, state_visits, model, initial_state, n_episodes, target_sp, target, T, n_workers=None):
-    """Evaluate REINFORCE agent with proper wSSA probability estimation"""
+def evaluate_reinforce(theta, state_visits, model, initial_state, n_episodes, target_sp, target, T, n_workers=None,
+                      relative_error_threshold=0.05, min_episodes=1000):
+    """Evaluate REINFORCE agent with proper wSSA probability estimation
+    
+    Args:
+        relative_error_threshold: Target relative error for stopping
+        min_episodes: Minimum episodes before checking stopping criteria
+    """
     if n_workers is None:
         n_workers = mp.cpu_count()
     
@@ -257,18 +306,48 @@ def evaluate_reinforce(theta, state_visits, model, initial_state, n_episodes, ta
         for i in range(n_episodes)
     ]
     
-    with mp.Pool(n_workers, initializer=init_worker, initargs=(model_path,)) as pool:
-        results = pool.map(run_episode, args_list)
-    
-    # Calculate weighted probability estimate
+    # Initialize statistics tracking
     weights = []
-    for success, _, _, weight in results:
-        if success:
-            weights.append(weight)
-        else:
-            weights.append(0.0)
+    running_sum = 0.0
+    running_sum_sq = 0.0
+    episode_count = 0
     
-    # wSSA probability estimate
-    probability_estimate = sum(weights) / n_episodes
+    # Process episodes in batches for adaptive stopping
+    batch_size = min(100, n_episodes // 10)
+    
+    with mp.Pool(n_workers, initializer=init_worker, initargs=(model_path,)) as pool:
+        for batch_start in range(0, n_episodes, batch_size):
+            batch_end = min(batch_start + batch_size, n_episodes)
+            batch_args = args_list[batch_start:batch_end]
+            
+            # Run batch
+            batch_results = pool.map(run_episode, batch_args)
+            
+            # Process results
+            for success, _, _, weight in batch_results:
+                episode_count += 1
+                w = weight if success else 0.0
+                weights.append(w)
+                
+                # Update running statistics
+                running_sum += w
+                running_sum_sq += w * w
+            
+            # Check stopping criteria after minimum episodes
+            if episode_count >= min_episodes:
+                mean_estimate = running_sum / episode_count
+                if episode_count > 1 and mean_estimate > 0:
+                    # Calculate standard error
+                    variance = (running_sum_sq / episode_count) - (mean_estimate ** 2)
+                    std_error = np.sqrt(variance / episode_count)
+                    relative_error = std_error / mean_estimate
+                    
+                    if relative_error < relative_error_threshold:
+                        print(f"\nStopping evaluation early at {episode_count} episodes")
+                        print(f"Relative error: {relative_error:.4f} < {relative_error_threshold}")
+                        break
+    
+    # Final probability estimate
+    probability_estimate = sum(weights) / len(weights) if weights else 0.0
     
     return probability_estimate, weights

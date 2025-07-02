@@ -15,8 +15,14 @@ def main(json_path):
     batch_size = 500           # batch size for policy updates
     N = 1_000_000                 # total evaluation episodes
     
-    results_file = open("./results/motil_updated.txt", "w")
-    csv_filename = "./results/motil_updated.csv"
+    # Stopping criteria parameters
+    convergence_threshold = 0.001  # Policy convergence threshold
+    patience = 20                  # Patience for early stopping
+    relative_error_threshold = 0.05  # Target relative error for evaluation
+    min_evaluation_episodes = 1000   # Minimum episodes before checking stopping
+    
+    results_file = open("./results/test.txt", "w")
+    csv_filename = "./results/test.csv"
     
     # Load configuration
     with open(json_path, 'r') as f:
@@ -48,8 +54,10 @@ def main(json_path):
         target_sp=target_index,
         target=target_value,
         T=t_max,
-        batch_size=batch_size,  # Add this parameter
-        n_workers=num_procs
+        batch_size=batch_size,
+        n_workers=num_procs,
+        convergence_threshold=convergence_threshold,
+        patience=patience
     )
     
     print("=" * 50)
@@ -98,7 +106,9 @@ def main(json_path):
                     target_sp=target_index,
                     target=target_value,
                     T=t_max,
-                    n_workers=num_procs
+                    n_workers=num_procs,
+                    relative_error_threshold=relative_error_threshold,
+                    min_episodes=min_evaluation_episodes
                 )
                 all_weights.extend(weights)
             
