@@ -1,0 +1,14 @@
+ctmc
+
+module singlespecies
+
+s1 : int init 1;
+s2 : int init 40;
+
+[R1] s1>0 -> (k1*s1) : (s2'=s2+1);
+[R2] s2>0 -> (k2*s2) : (s2'=s2-1);
+
+endmodule
+
+const double k1 = 1.0;
+const double k2 = 0.025;

@@ -1,0 +1,14 @@
+ctmc
+
+module test 
+
+s1 : [0..5] init 5;
+s2 : [1..2] init 1;
+
+[R1] s1>0 -> k1 : (s1'=s1-1);
+[R2] s2<2 -> k2 : (s2'=s2+1);
+
+endmodule
+
+const double k1 = 0.9999;
+const double k2 = 0.0001;

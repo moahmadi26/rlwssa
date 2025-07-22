@@ -1,0 +1,11 @@
+ctmc
+
+module singlespecies
+
+s : int init 0;
+
+[R1] true -> k : (s'=s+1);
+
+endmodule
+
+const double k = 0.7;
