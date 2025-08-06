@@ -72,38 +72,41 @@ def main(json_path):
    
     print(f"Learning phase finished. {K * N_train} trajectories were simulated.")
     print(f"Time spent learning: {time.time() - start_time} seconds.") 
-    print(f"Running the dwSSA with the biasing vector: \n{biasing_vector}\n...")
+    print(f"Final biasing vector: {biasing_vector}")
+    
+    # Probability estimation phase commented out
+    # print(f"Running the dwSSA with the biasing vector: \n{biasing_vector}\n...")
 
-    start_time = time.time()
+    # start_time = time.time()
 
-    p_vector = [None] * K
+    # p_vector = [None] * K
 
-    # run K ensembles of size N. Keep the probablity estimates in a vector
-    for i in range(K):
-        N_vec = [N // num_procs 
-                if j != num_procs - 1 
-                else N - ((num_procs - 1)*(N // num_procs)) 
-                for j in range(num_procs)]
+    # # run K ensembles of size N. Keep the probablity estimates in a vector
+    # for i in range(K):
+    #     N_vec = [N // num_procs 
+    #             if j != num_procs - 1 
+    #             else N - ((num_procs - 1)*(N // num_procs)) 
+    #             for j in range(num_procs)]
 
-        tasks = [(model_path, N_vec_j, t_max, target_index, target_value, biasing_vector) 
-                          for N_vec_j in N_vec]
+    #     tasks = [(model_path, N_vec_j, t_max, target_index, target_value, biasing_vector) 
+    #                       for N_vec_j in N_vec]
             
-        with multiprocessing.Pool(processes = num_procs) as pool:
-                results = pool.starmap(dwssa, tasks)
+    #     with multiprocessing.Pool(processes = num_procs) as pool:
+    #             results = pool.starmap(dwssa, tasks)
         
-        m_1 = 0.0
-        for result in results:
-            m_1 += result
+    #     m_1 = 0.0
+    #     for result in results:
+    #         m_1 += result
 
-        p_vector[i] = m_1 / N
-    p_hat = sum(p_vector) / K
-    s_2 = [(p_vector[i] - p_hat)**2 for i in range(len(p_vector))]
-    s_2 = sum(s_2) / (K-1)
-    error = math.sqrt(s_2) / math.sqrt(K)
+    #     p_vector[i] = m_1 / N
+    # p_hat = sum(p_vector) / K
+    # s_2 = [(p_vector[i] - p_hat)**2 for i in range(len(p_vector))]
+    # s_2 = sum(s_2) / (K-1)
+    # error = math.sqrt(s_2) / math.sqrt(K)
 
-    print(f"simulating {N} trajectories took {time.time() - start_time} seconds.") 
-    print(f"probability estimate = {p_hat}")
-    print(f"standard error = {error}")
+    # print(f"simulating {N} trajectories took {time.time() - start_time} seconds.") 
+    # print(f"probability estimate = {p_hat}")
+    # print(f"standard error = {error}")
 
 if __name__ == "__main__":
     config_path = sys.argv[1]
