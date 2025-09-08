@@ -1,0 +1,9 @@
+{
+	"model_path" : "../crns/pure_decay/pure_decay.sm",
+	"model_name" : "pure_decay_survival_50",
+	"starting_bound" : 50,
+	"csl_property" : "P=? [true U<=1 (X>=50)]",
+	"target_variable" : "X",
+	"target_value" : "50",
+	"max_time" : "1"
+}

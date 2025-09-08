@@ -1,0 +1,9 @@
+{
+	"model_path" : "../crns/enzym/enzym_unb.sm",
+	"model_name" : "enzymatic_s5_60_time2",
+	"starting_bound" : 19,
+	"csl_property" : "P=? [true U<=2 (s5>=60)]",
+	"target_variable" : "s5",
+	"target_value" : "60",
+	"max_time" : "2"
+}

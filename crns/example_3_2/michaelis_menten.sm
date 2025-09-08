@@ -1,0 +1,24 @@
+ctmc
+
+// Example 3.2: Michaelis-Menten enzymatic reaction
+// Reactions:
+// E + S -> C with rate theta1 * E * S
+// C -> E + S with rate theta2 * C  
+// C -> E + P with rate theta3 * C
+
+const double theta1 = 0.001;
+const double theta2 = 0.005;
+const double theta3 = 0.01;
+
+module michaelis_menten
+
+E : int init 100;  // Enzyme
+S : int init 100;  // Substrate
+C : int init 0;    // Complex
+P : int init 0;    // Product
+
+[bind]     E>0 & S>0 -> (theta1*E*S) : (E'=E-1)&(S'=S-1)&(C'=C+1);
+[unbind]   C>0       -> (theta2*C)   : (E'=E+1)&(S'=S+1)&(C'=C-1);
+[catalyze] C>0       -> (theta3*C)   : (E'=E+1)&(P'=P+1)&(C'=C-1);
+
+endmodule

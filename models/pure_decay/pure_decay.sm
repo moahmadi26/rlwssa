@@ -1,0 +1,14 @@
+ctmc
+
+// Pure decay model: X -> ∅
+// Used in: Ben Hammouda et al., 2023 - Example 3.1
+
+const double theta1 = 1.0;
+
+module pure_decay
+
+X : int init 100;
+
+[decay] X>0 -> (theta1*X) : (X'=X-1);
+
+endmodule

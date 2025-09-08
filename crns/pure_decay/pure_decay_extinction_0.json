@@ -1,0 +1,9 @@
+{
+	"model_path" : "../crns/pure_decay/pure_decay.sm",
+	"model_name" : "pure_decay_extinction_0",
+	"starting_bound" : 0,
+	"csl_property" : "P=? [true U<=2 (X<=0)]",
+	"target_variable" : "X",
+	"target_value" : "0",
+	"max_time" : "2"
+}

@@ -1,0 +1,10 @@
+{
+	"model_path" : "../crns/example_3_2/michaelis_menten.sm",
+	"model_name" : "Example_3_2_Michaelis_Menten",
+	"starting_bound" : 80,
+	"csl_property" : "P=? [true U<=1 (P>=80)]",
+	"target_variable" : "P",
+	"target_value" : "80",
+	"max_time" : "1",
+	"description" : "Rare event: P(T) >= 80 (high product formation within T=1)"
+}

@@ -1,0 +1,8 @@
+{
+	"model_path" : "../models/michaelis_menten/michaelis_menten.sm",
+	"model_name" : "michaelis_menten_high_product",
+	"target_variable" : "P",
+	"target_value" : "80",
+	"max_time" : "1",
+	"description" : "Rare event: P(T) >= 80 (high product formation)"
+}

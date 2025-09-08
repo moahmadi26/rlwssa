@@ -1,0 +1,8 @@
+{
+	"model_path" : "../models/motility_regulation/motility_regulation.sm",
+	"model_name" : "motility_regulation_high_cody",
+	"target_variable" : "CodY",
+	"target_value" : "15",
+	"max_time" : "10",
+	"description" : "Rare event: CodY(T) >= 15 (high CodY levels from initial 10)"
+}

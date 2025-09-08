@@ -1,3 +1,0 @@
-Training finished. 20000 episodes simulated.
-Time spent training: 101.10 seconds.
-Final success rate: 0.020

@@ -1,0 +1,33 @@
+ctmc
+
+// Yeast polarization model
+
+const double k1 = 0.0038;
+const double k2 = 0.0004;
+const double k3 = 0.042;
+const double k4 = 0.010;
+const double k5 = 0.011;
+const double k6 = 0.100;
+const double k7 = 1050;
+const double k8 = 3.21;
+
+module yeast
+
+R_ : int init 50;
+L  : int init 2;
+RL : int init 0;
+G_ : int init 50;
+Ga : int init 0;
+Gbg: int init 0;
+Gd : int init 0;
+
+[R1] true         -> (k1)       : (R_'=R_+1);
+[R2] R_>0         -> (k2*R_)    : (R_'=R_-1);
+[R3] R_>0 & L>0   -> (k3*R_*L)  : (RL'=RL+1)&(R_'=R_-1);
+[R4] RL>0         -> (k4*RL)    : (R_'=R_+1)&(RL'=RL-1);
+[R5] RL>0 & G_>0  -> (k5*RL*G_) : (Ga'=Ga+1)&(Gbg'=Gbg+1)&(RL'=RL-1)&(G_'=G_-1);
+[R6] Ga>0         -> (k6*Ga)    : (Gd'=Gd+1)&(Ga'=Ga-1);
+[R7] Gd>0 & Gbg>0 -> (k7*Gd*Gbg): (G_'=G_+1)&(Gd'=Gd-1)&(Gbg'=Gbg-1);
+[R8] true         -> (k8)       : (RL'=RL+1);
+
+endmodule

@@ -1,0 +1,17 @@
+{
+  "model_path": "./sirs_model.prism",
+  "target_variable": "I",
+  "target_value": 60,
+  "max_time": 30.0,
+  "model_name": "SIRS Epidemic Model",
+  
+  "ld": 3,
+  "sigma": 5,
+  "smax": 20,
+  
+  "num_procs": 8,
+  "K_train": 50000,
+  "K_estimate": 500000,
+  "rho": 0.01,
+  "num_ensembles": 5
+}

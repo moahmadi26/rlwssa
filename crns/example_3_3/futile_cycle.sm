@@ -1,0 +1,29 @@
+ctmc
+
+// Example 3.3: Enzymatic Futile Cycle
+// Two substrates S1 and S2 that can be converted back and forth by enzymes E1 and E2
+
+const double theta1 = 1.0;   // E1 + S1 -> C1
+const double theta2 = 1.0;   // C1 -> E1 + S1
+const double theta3 = 0.1;   // C1 -> E1 + S2
+const double theta4 = 1.0;   // E2 + S2 -> C2
+const double theta5 = 1.0;   // C2 -> E2 + S2
+const double theta6 = 0.1;   // C2 -> E2 + S1
+
+module futile_cycle
+
+E1 : int init 1;    // Enzyme 1
+S1 : int init 50;   // Substrate 1
+C1 : int init 0;    // Complex 1
+E2 : int init 1;    // Enzyme 2
+S2 : int init 50;   // Substrate 2
+C2 : int init 0;    // Complex 2
+
+[r1] E1>0 & S1>0 -> (theta1*E1*S1) : (E1'=E1-1)&(S1'=S1-1)&(C1'=C1+1);
+[r2] C1>0        -> (theta2*C1)    : (E1'=E1+1)&(S1'=S1+1)&(C1'=C1-1);
+[r3] C1>0        -> (theta3*C1)    : (E1'=E1+1)&(S2'=S2+1)&(C1'=C1-1);
+[r4] E2>0 & S2>0 -> (theta4*E2*S2) : (E2'=E2-1)&(S2'=S2-1)&(C2'=C2+1);
+[r5] C2>0        -> (theta5*C2)    : (E2'=E2+1)&(S2'=S2+1)&(C2'=C2-1);
+[r6] C2>0        -> (theta6*C2)    : (E2'=E2+1)&(S1'=S1+1)&(C2'=C2-1);
+
+endmodule

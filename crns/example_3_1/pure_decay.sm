@@ -1,0 +1,14 @@
+ctmc
+
+// Example 3.1: Pure decay model
+// Reaction: X -> ∅ with rate theta1 * X
+
+const double theta1 = 1.0;
+
+module pure_decay
+
+X : int init 100;
+
+[decay] X>0 -> (theta1*X) : (X'=X-1);
+
+endmodule

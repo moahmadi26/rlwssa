@@ -1,0 +1,10 @@
+{
+	"model_path" : "../crns/example_3_1/pure_decay.sm",
+	"model_name" : "Example_3_1_Pure_Decay",
+	"starting_bound" : 50,
+	"csl_property" : "P=? [true U<=1 (X>=50)]",
+	"target_variable" : "X",
+	"target_value" : "50",
+	"max_time" : "1",
+	"description" : "Rare event: X(T) >= 50 (survival of at least 50 particles out of 100 initial)"
+}

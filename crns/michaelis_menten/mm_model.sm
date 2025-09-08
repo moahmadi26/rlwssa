@@ -1,0 +1,18 @@
+ctmc
+
+const double theta1 = 0.001;
+const double theta2 = 0.005;
+const double theta3 = 0.01;
+
+module michaelis_menten
+
+E : int init 100;
+S : int init 100;
+C : int init 0;
+P : int init 0;
+
+[bind]     E>0 & S>0 -> (theta1*E*S) : (E'=E-1)&(S'=S-1)&(C'=C+1);
+[unbind]   C>0        -> (theta2*C)   : (E'=E+1)&(S'=S+1)&(C'=C-1);
+[catalyze] C>0        -> (theta3*C)   : (E'=E+1)&(P'=P+1)&(C'=C-1);
+
+endmodule

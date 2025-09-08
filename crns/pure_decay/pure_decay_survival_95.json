@@ -1,0 +1,9 @@
+{
+	"model_path" : "../crns/pure_decay/pure_decay.sm",
+	"model_name" : "pure_decay_survival_95",
+	"starting_bound" : 95,
+	"csl_property" : "P=? [true U<=1 (X>=95)]",
+	"target_variable" : "X",
+	"target_value" : "95",
+	"max_time" : "1"
+}

@@ -1,0 +1,8 @@
+{
+	"model_path" : "../models/enzymatic_futile_cycle/futile_cycle.sm",
+	"model_name" : "enzymatic_futile_cycle_low_s5",
+	"target_variable" : "s5",
+	"target_value" : "25",
+	"max_time" : "100",
+	"description" : "Rare event: s5(T) <= 25 (depletion from initial s5=50)"
+}

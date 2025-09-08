@@ -1,0 +1,21 @@
+ctmc
+
+const double beta = 0.0675;
+const double lambda = 3.959; 
+const double omega = 2.369;
+
+module sirs_model
+    S : [0..200] init 100;
+    I : [0..200] init 1;
+    R : [0..200] init 0;
+    
+    // S + I -> 2I (infection)
+    [infection] S > 0 & I > 0 -> beta * S * I : (S' = S - 1) & (I' = I + 1);
+    
+    // I -> R (recovery)  
+    [recovery] I > 0 -> lambda * I : (I' = I - 1) & (R' = R + 1);
+    
+    // R -> S (susceptible again)
+    [reinfection] R > 0 -> omega * R : (R' = R - 1) & (S' = S + 1);
+    
+endmodule

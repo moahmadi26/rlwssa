@@ -1,0 +1,11 @@
+ctmc
+
+const double lambda = 0.1;
+
+module pure_decay
+
+X : int init 100;
+
+[decay] X>0 -> (lambda*X) : (X'=X-1);
+
+endmodule

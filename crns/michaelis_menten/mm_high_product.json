@@ -1,0 +1,9 @@
+{
+	"model_path" : "../crns/michaelis_menten/mm_model.sm",
+	"model_name" : "michaelis_menten_high_product",
+	"starting_bound" : 80,
+	"csl_property" : "P=? [true U<=1 (P>=80)]",
+	"target_variable" : "P",
+	"target_value" : "80",
+	"max_time" : "1"
+}

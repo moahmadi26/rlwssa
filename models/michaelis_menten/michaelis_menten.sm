@@ -1,0 +1,21 @@
+ctmc
+
+// Michaelis-Menten enzymatic reaction model
+// Used in: Ben Hammouda et al., 2023 - Example 3.2
+
+const double theta1 = 0.001;  // E + S -> C
+const double theta2 = 0.005;  // C -> E + S  
+const double theta3 = 0.01;   // C -> E + P
+
+module michaelis_menten
+
+E : int init 100;  // Enzyme
+S : int init 100;  // Substrate
+C : int init 0;    // Complex
+P : int init 0;    // Product
+
+[bind]     E>0 & S>0 -> (theta1*E*S) : (E'=E-1)&(S'=S-1)&(C'=C+1);
+[unbind]   C>0       -> (theta2*C)   : (E'=E+1)&(S'=S+1)&(C'=C-1);
+[catalyze] C>0       -> (theta3*C)   : (E'=E+1)&(P'=P+1)&(C'=C-1);
+
+endmodule

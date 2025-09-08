@@ -1,0 +1,8 @@
+{
+	"model_path" : "../models/yeast_polarization/yeast_polarization.sm",
+	"model_name" : "yeast_polarization_high_gbg",
+	"target_variable" : "Gbg",
+	"target_value" : "30",
+	"max_time" : "20",
+	"description" : "Rare event: Gbg(T) >= 30 (high G beta-gamma complex formation)"
+}

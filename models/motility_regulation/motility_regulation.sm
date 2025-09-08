@@ -1,0 +1,42 @@
+ctmc
+
+// Motility regulation model
+
+const double k1 = 0.0038;
+const double k2 = 0.0004;
+const double k3 = 0.042;
+const double k4 = 0.010;
+const double k5 = 0.011;
+const double k6 = 0.100;
+const double k7 = 1050;
+const double k8 = 3.21;
+const double k9 = 0.001;
+const double k10 = 0.002;
+const double k11 = 0.003;
+const double k12 = 0.004;
+
+module motility_regulation
+
+Spo0F   : int init 1;
+Spo0F_p : int init 1;
+Spo0A   : int init 1;
+Spo0A_p : int init 1;
+Hag     : int init 1;
+CodY    : int init 10;
+SigD    : int init 10;
+CodYSigD: int init 10;
+
+[R1]  true                    -> (k1)            : (Spo0F'=Spo0F+1);
+[R2]  Spo0F>0                 -> (k2*Spo0F)      : (Spo0F'=Spo0F-1);
+[R3]  Spo0F>0 & Spo0A>0       -> (k3*Spo0F*Spo0A): (Spo0F_p'=Spo0F_p+1)&(Spo0A_p'=Spo0A_p+1)&(Spo0F'=Spo0F-1)&(Spo0A'=Spo0A-1);
+[R4]  Spo0F_p>0               -> (k4*Spo0F_p)    : (Spo0F'=Spo0F+1)&(Spo0F_p'=Spo0F_p-1);
+[R5]  Spo0A_p>0 & SigD>0      -> (k5*Spo0A_p*SigD): (Hag'=Hag+1)&(Spo0A_p'=Spo0A_p-1)&(SigD'=SigD-1);
+[R6]  Hag>0                   -> (k6*Hag)        : (Hag'=Hag-1);
+[R7]  CodY>0 & SigD>0         -> (k7*CodY*SigD)  : (CodYSigD'=CodYSigD+1)&(CodY'=CodY-1)&(SigD'=SigD-1);
+[R8]  CodYSigD>0              -> (k8*CodYSigD)   : (CodY'=CodY+1)&(SigD'=SigD+1)&(CodYSigD'=CodYSigD-1);
+[R9]  true                    -> (k9)            : (CodY'=CodY+1);
+[R10] CodY>0                  -> (k10*CodY)      : (CodY'=CodY-1);
+[R11] true                    -> (k11)           : (SigD'=SigD+1);
+[R12] SigD>0                  -> (k12*SigD)      : (SigD'=SigD-1);
+
+endmodule

@@ -1,0 +1,8 @@
+{
+	"model_path" : "../models/pure_decay/pure_decay.sm",
+	"model_name" : "pure_decay_survival",
+	"target_variable" : "X",
+	"target_value" : "50",
+	"max_time" : "1",
+	"description" : "Rare event: X(T) >= 50 (survival from initial X=100)"
+}
