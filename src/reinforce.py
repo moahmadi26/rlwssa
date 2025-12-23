@@ -1,7 +1,4 @@
-"""
-INTELLIGENT REINFORCE FOR WEIGHTED SSA
-Final solution addressing underestimation with proper stopping criteria
-"""
+
 import numpy as np
 import random
 import multiprocessing as mp
