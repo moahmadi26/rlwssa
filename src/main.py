@@ -1,7 +1,4 @@
-"""
-INTELLIGENT MAIN SCRIPT FOR WEIGHTED SSA
-Final clean solution with proper functionality
-"""
+
 import sys
 import json
 import time
