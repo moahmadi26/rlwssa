@@ -1,6 +1,0 @@
-{
-    "model_path": "../crns/single_species/single_species.sm",
-    "target_variable": "s2",
-    "target_value": 80,
-    "max_time": 100.0
-}
