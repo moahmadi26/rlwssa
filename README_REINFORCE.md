@@ -44,8 +44,7 @@ All models are configured via JSON files with the following structure:
 ## Files
 
 - `main.py`: Entry point and experiment runner
-- `reinforce_dwssa_combined.py`: Core REINFORCE algorithm with combined rewards
-- `reinforce_parallel_combined.py`: Parallel implementation for training and evaluation
+- `reinforce.py`: Core REINFORCE algorithm with combined rewards
 - `prism_parser.py`: Parser for PRISM model files
 - `suppress.py`: Utility for suppressing C output
 
